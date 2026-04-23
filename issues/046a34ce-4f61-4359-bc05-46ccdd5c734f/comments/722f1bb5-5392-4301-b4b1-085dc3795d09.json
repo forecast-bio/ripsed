@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Committed as d47ef80.",
   "created_at": "2026-03-28T15:03:58.754560264Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQAH9V/mdWf9UEDD3MHFMudCVNO2/lklw+iRQ7ytR52Qu2QOL3DxYkoGt50dokALSkxqO955mwqaoDI3BQ5f5OAs="
 }

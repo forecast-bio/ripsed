@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Locking is unnecessary in dry_run mode — reads don't need protection and creating .ripsed.lock files in the source tree is an unwanted side effect. Fix: gate lock acquisition on \\!dry_run in file_mode, json_mode, and script_mode. Also fix apply_to_file in the facade crate.",
   "created_at": "2026-03-28T15:10:08.433198055Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQLehsWAxFoL0m9RhjTXV6hOPv4MX5ZC7qCM/ykrCkJZMFFksz8mONLY4mQY6+sTBqGznqD7uqnEd80erjZeHgQw="
 }

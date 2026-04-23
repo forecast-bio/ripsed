@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Gated lock acquisition on !dry_run in all four locations: file_mode, json_mode, script_mode, and facade apply_to_file. 524 tests pass, clippy clean.",
   "created_at": "2026-03-28T15:11:32.546372405Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQM82F3jKmk42Nbu8ptP6/xJ+48xoCW0rbqWwnybQBP8SG8mYfF4ad6nkIZawl9Tip23vXvveVL1fmBF1e2HLlgw="
 }

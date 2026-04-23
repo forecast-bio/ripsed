@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Refactoring complete. Extracted two helpers from validate_op:\n\n- validate_find_and_regex(index, find, regex, op_name): checks find is non-empty and validates regex when enabled. Used by all 9 match arms.\n- validate_required_field(index, value, field_name, op_name): checks a required field (e.g. content) is non-empty. Used by insert_after, insert_before, replace_line.\n\nvalidate_op shrank from ~160 lines to ~70 lines. Variant-specific checks (surround prefix/suffix, replace empty-replacement allowance) remain inline. The wildcard arm is preserved. All 68 tests pass.",
   "created_at": "2026-03-27T17:24:57.097613671Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQPiZLJFRCyQiKKKowS/KU+T17CFq7evtsFseFXpeKyeRawJXH7OL7478G0LRFNqRLS9stJepek3x+zfFt7Cg3wk="
 }

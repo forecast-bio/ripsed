@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Delivered: AtomicBatch::commit now implements true all-or-nothing semantics. Phase 1 snapshots original file contents before any renames. Phase 2 persists sequentially. If any persist fails, Phase 3 restores already-committed files from snapshots (or removes newly-created files). All 508 tests pass.",
   "created_at": "2026-03-26T00:14:15.918759401Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQILIx91Dg0ggpot55L2ub/DVlUODEDpRtM9UAWd3NqXZ453geEY9AgrPy4WPD4251g5ZzIDeoXJ6ZfM0D2GdNwY="
 }

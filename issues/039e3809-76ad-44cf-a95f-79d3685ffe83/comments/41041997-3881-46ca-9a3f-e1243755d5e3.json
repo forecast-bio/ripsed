@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Restructured save_undo_log to use if/else instead of early return + trailing cfg(unix) block. Clippy clean.",
   "created_at": "2026-03-28T14:47:07.514506520Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQBXM4WA7cICMNeRsYbsSbf/M2UWC8/wd5hI0CPc+BpXSLKAu07WUJBJ3wgGC3aKmF4rpHLwAqg22rX4MQJK/GgY="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Replacing unwrap_or_else with expect — all fields are String/bool/usize/Vec which are infallibly serializable by serde_json.",
   "created_at": "2026-03-27T17:12:20.860704377Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQIWCP4UE3o8drOI6F8HBiaTX85cZvY9AR3cZ9y/dqv75vCVxPA9QriDdYMEXNCu596zWuQPiPg/w7gDyHMXEMwY="
 }

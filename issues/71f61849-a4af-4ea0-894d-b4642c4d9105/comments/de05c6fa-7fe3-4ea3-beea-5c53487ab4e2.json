@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Removed unused proptest dev-dependency from ripsed-fs/Cargo.toml. 30/30 tests still pass.",
   "created_at": "2026-03-27T16:57:31.348065430Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQFBTD9aZgGrVdIptksqtMkVObeY2AfOJ6gEUln3AIEbeHus57I8GMxnxKb5s6/sNExDb5VTnuIf8nUkG0RpySA0="
 }

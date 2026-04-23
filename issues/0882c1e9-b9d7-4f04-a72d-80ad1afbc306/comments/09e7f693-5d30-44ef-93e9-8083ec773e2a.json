@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Fixed: (1) CHANGELOG reorganized with proper [0.2.5] header, deduplicated entries, correct categorization. (2) Root README: updated --confirm description (per-file not per-change), --dedent (whitespace not just spaces). (3) ripsed-core README: removed 'pure logic with no I/O' claim, added undo module, fixed example. (4) ripsed-fs README: updated discovery description (always parallel), updated locking (PID staleness). (5) ripsed-json README: added size limits mention and schema versioning.",
   "created_at": "2026-03-27T18:43:10.588584245Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQDyJdRsChC2YWGSQ30xmYhOXaHoaJNOsHiMi6wfFcUcH5j61v4p+hYjDopUG132rIiNluCjMKJF95UwOELeaBQI="
 }

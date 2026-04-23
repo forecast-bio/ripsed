@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Added file.flush() after writing PID/timestamp to the lock file. Without it, the buffer wasn't flushed before a second acquire read the file, seeing it as empty and treating it as stale. 7/7 lock tests pass.",
   "created_at": "2026-03-27T18:22:01.981288388Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQOuUf39dR5nGdB2M8KjDY512CEyRi69sKIy1uSUIXFk2XuNpC0bp6ec1Va7ds859yQSmRD9FB0N1sxNlT8c1Aw4="
 }

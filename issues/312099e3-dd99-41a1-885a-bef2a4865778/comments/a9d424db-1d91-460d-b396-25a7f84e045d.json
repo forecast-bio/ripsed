@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "QA review found additional issues: (1) writeln!/flush results silently discarded with let _ = — if PID write fails, lock becomes immediately bypassable as empty file is treated stale. (2) Test coverage gaps: no stale lock, lock_path_for edge cases, is_lock_stale parsing, concurrent acquisition, or error message tests.",
   "created_at": "2026-03-28T14:14:37.947689157Z",
-  "kind": "observation"
+  "kind": "observation",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQADTnOeQZ9YlgMhujvTJ71brN5GN0QXUVNR9zikGfKT3bLH3121WiZBCKC53duhuyVGObV1v4F8k/tLpYMdoYwk="
 }

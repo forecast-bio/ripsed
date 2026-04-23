@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: Add rollback logic to AtomicBatch::commit. Before renaming, save original file contents. If any persist() fails mid-commit, restore already-persisted files from saved originals. Alternative: document the limitation as best-effort. Going with the rollback approach since the 'atomic' contract is user-facing.",
   "created_at": "2026-03-26T00:09:49.354328879Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQH8SfHspNO5j5V/pfGyJYFP6NQtBy2ADGmr4tnHsJRtRBaXAv2RO0pmvgDU6v6goDoq2WgaNfBbPSpZLAAezwAc="
 }

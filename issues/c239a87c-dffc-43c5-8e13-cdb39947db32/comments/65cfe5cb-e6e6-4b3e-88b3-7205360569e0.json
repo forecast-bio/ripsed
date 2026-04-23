@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "cargo fmt applied, cargo clippy --all-targets -- -D warnings passes clean. Fixed 4 clippy issues: 3 too-many-arguments (introduced LineCtx struct), 1 vec-init-then-push. All 19 test suites pass. Committed as 9651496.",
   "created_at": "2026-03-27T18:07:50.422750552Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQAlVHJ2WM+jlbkACEpMfyjdgs578uXp6PfN/yL8B4Qa1heoE/Mnp1I+9rjFzR6OCjLAs14KeFD33aaMu4JSvBQA="
 }

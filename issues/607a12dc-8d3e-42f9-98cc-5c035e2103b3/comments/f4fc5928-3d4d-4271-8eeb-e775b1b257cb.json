@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "parse_script_line is 184 lines but is already well-structured as a match on operation names. Extracting into a parser combinator or builder pattern would add abstraction without reducing complexity. The function is tested thoroughly. Deferring.",
   "created_at": "2026-03-27T17:28:34.424022647Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQNethlY7XtEzb0IPU9Z2RQ731LSgSPdm2N5hoj3Csl1J+akYwj5d8kF6+94bi0o/1NlbaXW2guyJbZ0fbPD2SQM="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Fixed lock file flush bug. PID wasn't flushed before staleness check, causing stale misclassification. Committed as 259f7e7.",
   "created_at": "2026-03-27T18:22:32.191962504Z",
-  "kind": "handoff"
+  "kind": "handoff",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQKTEWhOiUmlfmY/kENbcscFN/yRIgbzLnv7/j5nKO7OicTK43rSlapDAt46LC4o2/ZtXXit0SgtnQuHtkgcPIQg="
 }

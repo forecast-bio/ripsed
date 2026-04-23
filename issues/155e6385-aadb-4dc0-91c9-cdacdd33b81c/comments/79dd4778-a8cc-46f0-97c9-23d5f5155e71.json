@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Moving default_true to lib.rs as pub(crate) and removing duplicates from operation.rs and config.rs.",
   "created_at": "2026-03-27T17:15:18.301774014Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQBdrSk4AyVUMUD9NG26w1SLug/X7SM45BYbMkRX891w9cmpRp6lwsG/+KrUaFAjQrP0/M3XnbBpR9hjMBbtN0gY="
 }

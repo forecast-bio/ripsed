@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Refactoring the Cli struct into sub-structs would require clap flatten attributes and would break all callers that access cli.field. This is a large API change with high regression risk and marginal benefit — clap already groups flags visually in --help. Deferring to a future major version.",
   "created_at": "2026-03-27T17:28:25.384446205Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQB1/t76NHzngp2PEbxGHSpn/1Io6OO/c1f+d73+Qe5gJE9/5go+rHOGRuhBHspFvu8SqMhKSnt03qsIu4M9mfAM="
 }

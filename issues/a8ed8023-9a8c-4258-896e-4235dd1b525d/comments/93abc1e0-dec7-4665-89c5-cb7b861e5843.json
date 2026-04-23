@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Already implemented by issue #14 — MAX_REQUEST_BYTES constant and length check added to JsonRequest::parse in request.rs. Verified in detect.rs too.",
   "created_at": "2026-03-27T17:10:23.613685671Z",
-  "kind": "observation"
+  "kind": "observation",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQMXFThw3ET4s0LPVPcE/LOFN5MIYz+tvA354zO/ygYzrkDN5wbHBxg25rJOnn+XTWQYfA0sTMHmVW9zHK3BJ+QU="
 }

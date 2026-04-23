@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "The undo log must store original file contents to enable restoration — this is a design requirement (confirmed by user). The clone in engine.rs is necessary since the text is borrowed. Marking as wontfix — the memory cost is inherent to the undo feature.",
   "created_at": "2026-03-27T17:22:45.745359360Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQO5SpJVjGyvndvNubcobkuqvjrr3QpsHa7sWjf8G+ehkku0tZcLmtAdtfkGkA1yRXp8mE1cK2cNhexYZ2SYeywI="
 }

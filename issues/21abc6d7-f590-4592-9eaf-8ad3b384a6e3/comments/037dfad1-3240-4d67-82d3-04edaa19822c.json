@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: Convert run_file_mode, run_json_mode, run_pipe_mode, run_script_mode to return Result<(), i32> (exit code). Move all process::exit calls to main(). handle_undo and handle_undo_list also need conversion. This ensures RAII cleanup (undo log saves, temp file destructors) runs on every exit path.",
   "created_at": "2026-03-26T00:20:13.592481458Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQDlZN6zutBrMxw2yNdLYA6iPw4+QZ2J3MLMevk+81nYIPaT/mOgN+Aepi4a86zlEiI5rpD19y28a3wN6bTKoIw0="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Extracting common Op fields into a shared MatchSpec struct would be a breaking change to the Op enum's serde representation, breaking existing JSON API consumers and .rip scripts. The repetition is real but the cost of changing is too high for the benefit. Deferring.",
   "created_at": "2026-03-27T17:28:30.099206557Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQG0uIl6vuDmL+J6t+5EDc8LcRkDrONiuPY2r4XdWvQDtlBI6LwJ91at/0gIjoF79Q4pmwDsQ8Ex9BEgdh0NnbwY="
 }

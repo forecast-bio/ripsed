@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "The inline test coverage is already thorough (226+ tests with property-based tests and Unicode edge cases). Integration tests exercising the public API surface end-to-end are covered by the CLI integration tests. Closing as low-priority — the existing coverage is sufficient.",
   "created_at": "2026-03-27T17:28:38.199212913Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQHViZT7GyOkqPWmXGSTaerO12bmcTJRylW39620qZLU1RULVIe0Tp4RJ0lyfWse+JNwWRqkMgFeSeImfS0bm3Qs="
 }

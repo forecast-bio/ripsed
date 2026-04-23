@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Problem: is_lock_stale checks if the PID is alive. When the same process holds the lock, the PID is alive so the lock is NOT stale, meaning the auto-clean shouldn't trigger. But the tests are failing because acquire_twice succeeds — meaning the stale check IS removing the lock. The issue must be that the lock file written by the first acquire is being read and the PID check is somehow failing. Let me investigate.",
   "created_at": "2026-03-27T18:21:17.157552473Z",
-  "kind": "observation"
+  "kind": "observation",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQENMrbrlFzm/uIfWIJrerJzu70UPEG/7ASGdKe6/+Er1XosZusV07SN9qFOpTgI8QIPauZzAx++chktCF2i1NAA="
 }

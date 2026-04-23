@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Decision: Using std::process::ExitCode as the return type from main(), with a custom ExitResult type alias Result<(), i32> for mode functions. Each mode function returns Ok(()) for success or Err(exit_code) for failure. main() maps these to process::exit. This is the minimal change that consolidates exits without restructuring the entire error model.",
   "created_at": "2026-03-26T00:20:23.115374177Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQHQoS/XCDxJAu0aq9Cj9MOmdhwD0c59OxvPkfR4Khfx1LCaQwXWNiEZVNk4QCNz2Z22A/TBfr/FfAibjTTq2IAs="
 }

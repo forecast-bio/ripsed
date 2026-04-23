@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Decision: Using the existing reader::is_binary() function since it's in the same crate (ripsed-fs). No new dependency needed — just a module-internal call.",
   "created_at": "2026-03-26T00:14:46.611065071Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQA3dPPt1jS5KXrd8acJdhh5dIubwt+NVWDvOvhE+8y83LEzDr/F1HMJfv3wIO0nOY/Gbrg/BPxj6PmTjQIppdAc="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Changing load_config to return Result<Config, i32> to match run()'s error type. Single caller in main.rs:25.",
   "created_at": "2026-03-27T17:10:46.239915299Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQNpxgSVgUsWkOuE7OigatkZY/XDNUqvqFOM28FTlgcV7XDdGikQ7+PXBQgb3zXXu8eiMS0ZJ3e71e5Khc41bfgg="
 }

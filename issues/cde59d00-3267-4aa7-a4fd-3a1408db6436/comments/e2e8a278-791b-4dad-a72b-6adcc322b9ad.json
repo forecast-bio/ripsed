@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Replaced unreliable top-level entry count heuristic with always-parallel. Parallel walker has minimal overhead on small dirs and correctly handles deep trees. Removed unused PARALLEL_THRESHOLD constant. 33/33 fs tests pass.",
   "created_at": "2026-03-27T17:22:07.142167624Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQDCNk75y4aM2vB6qFl8gUu63TxrebSPRL9NzAh2U5rwEQVi70w7KQTF2CvMhb6QeIzi7bHmzjKAfjh2FFTbnqAk="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: Add use_tabs: bool field to Op::Dedent variant with #[serde(default)] for backward compatibility. Update dedent_line() to strip tabs when use_tabs is true. Update all construction/match sites: CLI args (args.rs, file_mode.rs), script parser (script.rs), engine match arm, and all tests. Add new tests for tab dedent and tab roundtrip.",
   "created_at": "2026-03-27T16:47:02.269803981Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQDLyqv7vUu2DaUAGSUbmQ/kbsIfa1xpa46hCFVQOGlTbZxgHsj1ClaMH3la7B/X1kSQHQVr7h9FeKKeCTC1IhQ4="
 }

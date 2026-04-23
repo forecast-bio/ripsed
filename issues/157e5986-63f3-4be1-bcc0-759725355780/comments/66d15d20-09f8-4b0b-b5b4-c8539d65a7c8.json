@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Fixed both flaky tests: (1) concurrent test uses dual barriers — winner holds lock via end-barrier until all threads have tried. (2) timeout test uses Drop instead of release().unwrap() to avoid NotFound race. All 508 tests pass, fmt/clippy clean.",
   "created_at": "2026-03-28T14:34:31.435837145Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQKuUAHiE/C94+dvV4WakH6oqIg8gIcOKX9kKaS1GlJHg07bw4T8Wuv27DXGMaB2pzDUFLTEsZzxLZh/lAQ12lws="
 }

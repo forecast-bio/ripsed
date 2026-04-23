@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Added a HashMap<PathBuf, String> content cache in run_json_mode(). The inner loop now checks the cache before reading from disk. After each successful engine::apply that produces output text, the cache is updated with the new content. This ensures operations compose: each operation sees the result of the previous one rather than the original disk content. The cache is updated regardless of dry_run mode so that dry-run diffs are also correct when multiple operations target the same file. All existing tests pass (226 core + 30 fs + 68 json + 24 cli unit + all integration tests).",
   "created_at": "2026-03-27T16:47:30.883378434Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQI08rPpKq32J/0oS4NOmY9sueeWwiZRIt7vVF1GXrWzdcgi+iJ43qIvF5UigSob+5+aolfpNQgAetslFZDyaewo="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Replaced full serde_json::Value deserialization in is_ripsed_json with a lightweight substring heuristic: checks that the trimmed input starts with '{' and contains the literal string '\"operations\"'. This eliminates the double-parse cost since JsonRequest::parse performs full validation downstream anyway. All 68 ripsed-json tests pass.",
   "created_at": "2026-03-27T17:20:06.875998796Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQFfwXUXI3Da/BoZxDlGWCLbP1lpo7M3PDsyu5YcU+wBJSHXvHtJy9SNXpz22IhvGZXPctHVzExdThmEcwa5GhQ8="
 }

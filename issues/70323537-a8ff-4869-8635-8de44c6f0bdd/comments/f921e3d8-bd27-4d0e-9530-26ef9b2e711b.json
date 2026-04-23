@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Delivered: save_undo_log now reports errors to stderr instead of silently discarding them. Users see a warning if undo log cannot be written.",
   "created_at": "2026-03-26T00:16:15.491908797Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQHYoEbWWIp3wB4GC3k9t1gfZgqub7pJ0o2Xiwqc9b5uHMtppEJB8qlhNmELiCjFSwaVh6z5aVsFvdOIu5tV/rwY="
 }

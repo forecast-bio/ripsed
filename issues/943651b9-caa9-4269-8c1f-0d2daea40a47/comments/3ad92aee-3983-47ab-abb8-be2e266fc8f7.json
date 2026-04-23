@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "The double-negation condition `if cli.json || (!stdin_is_tty && !cli.no_json)` is eliminated. In the new resolve_mode() function, the logic reads as positive assertions: `let stdin_eligible = !stdin_is_tty && !cli.no_json; let want_json = cli.json || stdin_eligible;` — each named binding makes the intent clear. The nested else-if branches are gone; run() dispatches via a flat match on Mode variants.",
   "created_at": "2026-03-27T17:24:34.401797608Z",
-  "kind": "resolution"
+  "kind": "resolution",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQE4xZr+sQm31H/RCgMIYvFoD4FfypPVbe/d4W03IkLAHeqP0TvhCTy9sFDMZH/VES52mibcVBEgRgC8m74S9Egc="
 }

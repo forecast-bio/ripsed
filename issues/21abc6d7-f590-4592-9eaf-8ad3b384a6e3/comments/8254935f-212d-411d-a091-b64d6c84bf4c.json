@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Delivered: Converted all mode functions (run_file_mode, run_json_mode, run_pipe_mode, run_script_mode, handle_undo) to return Result<(), i32>. Consolidated process::exit into a single call site in main(). All cleanup code (undo log saves, destructors) now runs on every exit path. Removed ~15 direct process::exit calls from mode modules. All 508 tests pass, 0 clippy warnings.",
   "created_at": "2026-03-26T00:22:42.886485694Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQEGJPzsPM3Q1BKZ9bC+ZqKk0CT4LgI0EY5xEwDKD4X42lE/36z4fE+uH+dGakxzaZTZ3B9FXVYMQxevI9RP+BQQ="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Fixed by handling extensionless files with direct OsString append instead of with_extension. Makefile now produces Makefile.ripsed.lock (no double dot). All 7 lock tests pass.",
   "created_at": "2026-03-27T16:53:49.729306795Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQLdZdraZ20efhdVhuYPamXlXoGIpAcCoxNrFqV/iMseMPXdyg7vkQ8DM9fOVUy9yAiWWpg15gqriZr4oLQ8n7wM="
 }

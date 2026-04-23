@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Added doc comment documenting timestamp format as Unix epoch seconds string. Chose doc comment over newtype — format is simple and already consistent across all callers.",
   "created_at": "2026-03-27T17:21:14.936436725Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQJAVqlkabbM/0EKCWQyzwd/QkjHPkQa3Mpp4rFT7yGXXTFtKjugUhKGKVfr0m1GjKcA7zfPFNFPysdTjeb3JewY="
 }

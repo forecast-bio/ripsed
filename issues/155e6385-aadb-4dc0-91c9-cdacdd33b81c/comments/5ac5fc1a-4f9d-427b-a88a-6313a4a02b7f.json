@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Moved default_true to lib.rs as pub(crate), replaced duplicates in config.rs and operation.rs with use crate::default_true. 226/226 core tests pass.",
   "created_at": "2026-03-27T17:16:00.607820903Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQKpPXYeulOAz9Q8PLUoPrU0gKpLXLrBmkYPZqS8iYgTPRGKXYf4mAKiqM3JFm0IIGT7VI7V0W2n7EPYP8EpBLwo="
 }

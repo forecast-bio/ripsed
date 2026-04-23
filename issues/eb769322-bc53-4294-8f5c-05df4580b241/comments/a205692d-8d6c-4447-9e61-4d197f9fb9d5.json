@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Partially addressed by #40 (removed ripsed-core dependency from ripsed-fs). The remaining Config I/O in core (Config::discover, Config::load) is still present but lower priority — Config is fundamentally a core domain type whose discovery uses trivial I/O. Full extraction to ripsed-fs would require a new config-loading trait, which adds complexity without clear benefit.",
   "created_at": "2026-03-27T17:27:28.616852812Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQLoArBSGyFF90kTEP41DaD8uW/oT+pqY/63i78QP0oNK2voMwL/3jZXQIpb3gwgQz9L8gxFGkM/OjdaO997plgg="
 }

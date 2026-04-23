@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Delivered: File read errors in JSON mode now push structured RipsedError (permission_denied or write_failed) into the errors vec, surfacing them in the JSON response. Previously silently swallowed with 'continue'. All 508 tests pass.",
   "created_at": "2026-03-26T00:19:24.323669121Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQK2mL9KPv7u28nFkl95i0u1RMiHn01K8guiAK47LZl8Cb7lLX0kmZ1aZiiLj9jxtxTEqfWmekMSTFExlPHxwQA4="
 }

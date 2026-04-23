@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "The from_op_options conversion is a convenience constructor on DiscoveryOptions. Moving it to the CLI layer would break the clean API. With the Default impl added in #36, callers can now use struct update syntax instead. Removing from_op_options from ripsed-fs and moving to CLI shared.rs.",
   "created_at": "2026-03-27T17:24:39.629363574Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQBIuGbrq7ak51s9Szxy62vhAM1NM12+e0O/zpJbRllbMg4CVPi7MPo9CEfw+jKVWUmxCYfrmc0GRNx3siDPw1Qg="
 }

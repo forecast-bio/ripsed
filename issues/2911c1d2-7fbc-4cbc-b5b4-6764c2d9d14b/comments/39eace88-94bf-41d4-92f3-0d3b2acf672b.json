@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Delivered: Replaced std::fs::read() (full file read) with reader::is_binary() (8KB bounded read) in both discover_files and discover_files_parallel. All 508 tests pass.",
   "created_at": "2026-03-26T00:15:27.847504643Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQBS0vq3i0W+ltF0bJ3HS1Q6dEHfh7bvORipE6HOH9IQpUpHN1NwddZL2J/ENdK+Omygw2SMj3NwJPlNdTajhVA4="
 }

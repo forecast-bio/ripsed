@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Windows cfg(not(unix)) variant of is_process_alive returns true unconditionally, so stale locks are never cleaned up. Fix: implement real check using windows-sys OpenProcess API. Gate stale-specific tests with cfg(any(unix, windows)) once both platforms have real implementations.",
   "created_at": "2026-03-28T14:40:00.510478798Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQLDIxQLZSu0Dhw0rrZUngyio5ZkS76md23b5NPA8B31wCeSIkP3SmrqXkCkgsep6YhsJEyDvPKZE8JWL7UerTQY="
 }

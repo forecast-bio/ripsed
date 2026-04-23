@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Extracted all 9 Op match arms from apply() into dedicated helper functions: apply_replace, apply_delete, apply_insert_after, apply_insert_before, apply_replace_line, apply_transform_op, apply_surround, apply_indent, apply_dedent. Introduced a LineAction enum to standardize the return type across helpers. The main apply() loop now dispatches to the appropriate helper and acts on the returned LineAction. All 226 tests pass, full workspace compiles clean.",
   "created_at": "2026-03-27T17:30:09.104321199Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQIsTaFKRWq8ekFFwoA236UWQw3hVn9kSLDMVuLzYa9/6JJWCXPI/MgwS1/suVW+kaZz0SwGfPYSesRt6bbL83wc="
 }

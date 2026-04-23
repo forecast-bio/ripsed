@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Delivered: (1) Created crates/ripsed/ facade crate with re-exports + apply_to_file()/apply_to_files() high-level API that does locked read-modify-write. (2) Removed locking from write_atomic and AtomicBatch::commit — they are now pure write primitives. (3) Added per-file FileLock in file_mode, json_mode, and script_mode CLI callers — lock acquired before read, held through backup+write. (4) JSON and script modes use a HashMap<PathBuf, FileLock> to hold locks across multiple operations on the same file. 524 tests pass, clippy clean, fmt clean.",
   "created_at": "2026-03-28T15:03:19.059724318Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQAMljPA3eRFylqtuQCmrEvq8NreyUL9L4TxkFT/1Ezx8E8gMiuyYN4wyVGcya+bJ9vWrRrPr8E3b+c5uftyVbAQ="
 }

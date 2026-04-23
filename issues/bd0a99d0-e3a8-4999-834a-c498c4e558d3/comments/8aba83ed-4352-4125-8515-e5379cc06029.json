@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Added input size limits to prevent OOM from oversized stdin/JSON payloads:\n\n1. **detect.rs**: Added `MAX_STDIN_BYTES` constant (64 MiB). Both `detect_stdin` and `detect_buffered` now use `Read::take(MAX_STDIN_BYTES + 1)` before `read_to_end`, and return `io::ErrorKind::InvalidData` if the limit is exceeded.\n\n2. **request.rs**: Added `MAX_REQUEST_BYTES` constant (64 MiB). `JsonRequest::parse` now validates `input.len()` before calling `serde_json::from_str`, returning `RipsedError::invalid_request` if exceeded.\n\nAdded 6 new tests:\n- `test_detect_stdin_rejects_oversized_input`\n- `test_detect_stdin_accepts_input_at_limit`\n- `test_detect_buffered_rejects_oversized_input`\n- `test_detect_buffered_rejects_oversized_plain_text`\n- `test_parse_rejects_oversized_request`\n- `test_parse_accepts_request_at_limit`\n\nAll 74 ripsed-json tests pass, full workspace test suite (500+ tests) passes with 0 failures.",
   "created_at": "2026-03-27T16:50:29.267694838Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQLfBxZ3eWhoYlXf3/SSv0hDxLAPY77ZTAhUbq2HcmRVXqaTRfLfZXSnbDeFWS5oudaduXzQ4H6K2jdBf1YIQyAY="
 }

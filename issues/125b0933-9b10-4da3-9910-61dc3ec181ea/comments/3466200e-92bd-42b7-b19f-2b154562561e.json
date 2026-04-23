@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: Add a unit test in engine.rs that applies TransformMode::Lower to already-lowercase text and verifies no changes are produced.",
   "created_at": "2026-03-26T00:22:55.159276078Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQBlVHWVyWY31aArqEC1Y7/h12v00saGuwU44mJK9SP6onBWbIo7yTtl0xjIkgwz8RV8z/HTTYd1y1ueD2QF18Qk="
 }

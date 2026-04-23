@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: Remove read_file_with_encoding and read_file_streaming from reader.rs along with their tests, since they are unused in any production code path. Keep the UTF8_BOM constant and is_binary which are used.",
   "created_at": "2026-03-26T00:24:05.024098718Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQI+lQTfYs2hyzvsUBKozBpAyFbPLL54M9qypsIGypouTHudf0Kf9BsFZ/WctnxnSh8RxrI8FaVixjkFIiI6tFwo="
 }

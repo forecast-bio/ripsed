@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: (1) Fix PID write error propagation — bubble up writeln!/flush errors instead of discarding. (2) Expand test suite with: lock_path_for edge cases, is_lock_stale parsing variants, stale lock cleanup, lock file content verification, concurrent multi-thread acquisition, nonexistent directory error, error message quality.",
   "created_at": "2026-03-28T14:14:46.943805294Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQDd5Fwk6ocLSQe/o5fUq7fyDyt6oI06AAxg3fo2LSEJHcb+/giFZC0iYsEKatMp7mkRnLN2ZAF9KoETWrKZIIAQ="
 }

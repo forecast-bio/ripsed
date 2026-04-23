@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Starting work on validate_op refactoring. Plan: (1) Extract validate_find_and_regex() helper for the common find-empty + regex check shared by all 9 arms, (2) Extract validate_required_field() helper for the content-empty checks used by insert_after/insert_before/replace_line, (3) Keep variant-specific checks (surround prefix/suffix, replace's empty-replacement allowance) inline, (4) Preserve the wildcard arm for unknown variants.",
   "created_at": "2026-03-27T17:24:00.150458229Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQNYzLcnBFK6nzbiNJuROsdMB1w1j8x4+1HVmLK6m6Jl1J1kDVYRqMG8sL/0dgvM9fHWHZv2IrHh0bwy6vIbNgA0="
 }

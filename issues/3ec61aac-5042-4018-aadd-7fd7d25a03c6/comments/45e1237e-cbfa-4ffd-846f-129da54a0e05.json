@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Repurposing this issue for a test-suite hardening pass. Crosslink create path is currently failing with FOREIGN KEY constraint errors (issues #82-84 all failed to persist). Scope:\n\n1. Remove ~25 tautological tests across operation.rs / request.rs / error.rs / undo.rs / schema.rs / diff.rs that test the serde framework rather than our logic.\n\n2. Add proptest-based adversarial tests to ripsed-core/src/engine.rs (apply+undo roundtrip, line-count preservation, no-match returns None, CRLF majority preservation).\n\n3. Add proptest-based tests to ripsed-core/src/matcher.rs (literal-match equivalence to str::contains, pathological patterns bounded).\n\n4. Add real AtomicBatch partial-failure rollback test in ripsed-fs/src/writer.rs (currently only tests drop-without-commit; not the actual phase-3 rollback code path).\n\n5. Add concurrent-write hammer integration test in crates/ripsed/tests/ to verify ripsed::apply_to_file's read-modify-write locking (the raison d'être of the facade crate added in 0.2.7).\n\n6. Add symlink-scope safety tests to ripsed-fs/src/discovery.rs (Unix-only).\n\n7. Add CLI JSON error-contract tests hardening the agent protocol.\n\n8. Fix write_atomic permission preservation test gap.",
   "created_at": "2026-04-16T15:54:18.454933460Z",
-  "kind": "note"
+  "kind": "note",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQJa7GFnJtCFz8fK3bNew8tYK2pece4B9ORppTyYUxYV/wWQR5F/1IdyRo03MMl5N7K2qmOZyAP9ZLzgW1MycHA4="
 }

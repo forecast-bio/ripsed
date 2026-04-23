@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Handling the no-extension case by appending to the OsString directly instead of using with_extension with an empty prefix.",
   "created_at": "2026-03-27T16:53:27.295853596Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQNCa9LBz2t9iu328zRZltWWuD7BCZQgJ/daQiD11sYws6ZDt473Ty76VmkgeL5c34X72Lak+b5UeUqn3cOwSywk="
 }

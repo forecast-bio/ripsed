@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "The is_process_alive() function checks /proc/{pid} which only exists on Linux. macOS is unix but has no /proc, so every lock appears stale. Fix: use libc::kill(pid, 0) on unix which works on both Linux and macOS.",
   "created_at": "2026-03-28T14:09:47.603562244Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQMxz7BIGV/NfaEsdyUI1GfVlwrLArIsPVw04OHA2iPw9Dwz/nKhDcD3Qg8QftmisiT6nbf7RS04YE6HmQKfkcw4="
 }

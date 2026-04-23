@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Plan: Replace matcher.replace(line, \"\") + let _ = transformed with matcher.is_match(line) in the Transform arm of engine::apply.",
   "created_at": "2026-03-26T00:19:35.468222357Z",
-  "kind": "plan"
+  "kind": "plan",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQE1KCYI8MtIX7mD4oJmGjrtf7fFTBwXLIV1Qhnp4mwqemxzqsQUz+YYMv9PT4btak5+QMlOO6eAbwJSVcCEQuwY="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Adding a doc comment to the timestamp field documenting the format (Unix epoch seconds as a string). A full newtype would be over-engineering for a simple timestamp field.",
   "created_at": "2026-03-27T17:20:58.647864227Z",
-  "kind": "decision"
+  "kind": "decision",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQOOUFDDeMlIAdGnBzrRssTDauX3UxNZbB8JXtLzRg5s94st4KEY/EEPP5T+qtXOH0K3XFsLvh5VGHDm4vUVd4go="
 }

@@ -4,5 +4,7 @@
   "author": "anon-59ff128d",
   "content": "Matcher::new now sets operation_index to None instead of hardcoded 0. Callers that know the real index (json_mode) already override it. 18/18 matcher tests pass.",
   "created_at": "2026-03-27T17:13:41.400809861Z",
-  "kind": "result"
+  "kind": "result",
+  "signed_by": "SHA256:6GbEO9gckWEeR3l6YB3LUaTe1Oc9qqn0WLtMVuu7a8A",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgqj5+UR1olg7w0+zZwuWbsWpzM2FlVsxso1l+rn8dSfAAAAASY3Jvc3NsaW5rLWJhY2tmaWxsAAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5AAAAQMNjtbCK97b0myx1f0wtOF9oIlRAijzjGD0M9qg7jAwduDZ2U7O+jtVDLIkeYr6M4PUn6KGiZ221wissINZ9zg8="
 }
