@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Streaming pipe mode (#96): piped input is now processed line by line
+  in constant memory instead of buffering all of stdin, so arbitrarily
+  large (or infinite) streams work like sed in a pipeline. Each line
+  keeps its own terminator (mixed CRLF/LF streams pass through
+  byte-exact — better than the buffered majority vote), `--count`,
+  `-n`, `--range`, and the replacement-count flags all work on
+  streams, and a closed downstream (`| head`) terminates quietly with
+  success. Multiline (`-U`) operations still buffer (they need the
+  whole input), as does anything that looks like a JSON request. New
+  library API: `engine::LineProcessor` for incremental line
+  processing.
 - Encoding support (#95): BOM-based detection of UTF-8-with-BOM and
   UTF-16 LE/BE. UTF-16 files — previously skipped as binary because
   of their NUL bytes — are now discovered, edited, and written back

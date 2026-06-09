@@ -559,6 +559,72 @@ fn truncated_utf16_file_fails_cleanly() {
     );
 }
 
+// ── Streaming pipe mode ──
+
+#[test]
+fn pipe_mode_streams_large_input() {
+    // 4 MB through the streaming path: correctness check that the
+    // line-by-line loop handles volume (the old path buffered everything;
+    // the cap-free streaming path must produce identical output).
+    let line = "needle in a haystack line\n";
+    let count = 4 * 1024 * 1024 / line.len();
+    let input: String = line.repeat(count);
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--pipe", "needle", "thread"])
+        .write_stdin(input)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout.lines().count(), count);
+    assert!(stdout.starts_with("thread in a haystack line\n"));
+    assert!(!stdout.contains("needle"));
+}
+
+#[test]
+fn pipe_mode_closed_downstream_exits_cleanly() {
+    use std::io::{Read, Write};
+    use std::process::{Command, Stdio};
+
+    // ripsed writes a large stream to a stdout we close after one line —
+    // the EPIPE must terminate it quietly with success, like sed | head.
+    let mut child = Command::new(assert_cmd::cargo::cargo_bin!("ripsed"))
+        .args(["--pipe", "x", "y"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let mut stdin = child.stdin.take().unwrap();
+    let writer = std::thread::spawn(move || {
+        // Enough data to overflow OS pipe buffers so the child actually
+        // hits EPIPE; ignore the write error when the child exits early.
+        let chunk = "x\n".repeat(64 * 1024);
+        for _ in 0..64 {
+            if stdin.write_all(chunk.as_bytes()).is_err() {
+                break;
+            }
+        }
+    });
+
+    // Read one line's worth, then drop stdout to close the pipe.
+    let mut stdout = child.stdout.take().unwrap();
+    let mut first = [0u8; 2];
+    stdout.read_exact(&mut first).unwrap();
+    assert_eq!(&first, b"y\n");
+    drop(stdout);
+
+    let status = child.wait().unwrap();
+    writer.join().unwrap();
+    assert!(
+        status.success(),
+        "closed downstream must be quiet success, got {status:?}"
+    );
+}
+
 #[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);

@@ -404,21 +404,7 @@ pub fn apply(
             line_sep,
         };
 
-        let action = match op {
-            Op::Replace { replace, count, .. } => apply_replace(&cx, replace, *count, &mut budget),
-            Op::Delete { .. } => apply_delete(&cx),
-            Op::InsertAfter { content, .. } => apply_insert_after(&cx, content),
-            Op::InsertBefore { content, .. } => apply_insert_before(&cx, content),
-            Op::ReplaceLine { content, .. } => apply_replace_line(&cx, content),
-            Op::Transform { mode, .. } => apply_transform_op(&cx, *mode),
-            Op::Surround { prefix, suffix, .. } => apply_surround(&cx, prefix, suffix),
-            Op::Indent {
-                amount, use_tabs, ..
-            } => apply_indent(&cx, *amount, *use_tabs),
-            Op::Dedent {
-                amount, use_tabs, ..
-            } => apply_dedent(&cx, *amount, *use_tabs),
-        };
+        let action = dispatch_op(op, &cx, &mut budget);
 
         match action {
             LineAction::Unchanged => {
@@ -471,6 +457,123 @@ pub fn apply(
         changes,
         undo,
     })
+}
+
+/// Route one line to the per-operation helper for line-scoped ops.
+/// Shared by the buffered [`apply`] loop and the streaming
+/// [`LineProcessor`]. Multiline ops never reach this (both callers
+/// reject them first).
+fn dispatch_op(op: &Op, cx: &LineCtx, budget: &mut Option<usize>) -> LineAction {
+    match op {
+        Op::Replace { replace, count, .. } => apply_replace(cx, replace, *count, budget),
+        Op::Delete { .. } => apply_delete(cx),
+        Op::InsertAfter { content, .. } => apply_insert_after(cx, content),
+        Op::InsertBefore { content, .. } => apply_insert_before(cx, content),
+        Op::ReplaceLine { content, .. } => apply_replace_line(cx, content),
+        Op::Transform { mode, .. } => apply_transform_op(cx, *mode),
+        Op::Surround { prefix, suffix, .. } => apply_surround(cx, prefix, suffix),
+        Op::Indent {
+            amount, use_tabs, ..
+        } => apply_indent(cx, *amount, *use_tabs),
+        Op::Dedent {
+            amount, use_tabs, ..
+        } => apply_dedent(cx, *amount, *use_tabs),
+    }
+}
+
+/// What [`LineProcessor::process_line`] decided for one input line.
+#[derive(Debug, PartialEq, Eq)]
+pub struct StreamedLine {
+    /// Lines to emit in place of the input line: empty for a deletion,
+    /// one for unchanged/replaced, two for an insert plus the original.
+    pub lines: Vec<String>,
+    /// Whether the operation changed this line.
+    pub changed: bool,
+}
+
+/// Incremental line-by-line processor for streaming inputs (pipe mode).
+///
+/// Wraps the same per-line logic as [`apply`] without buffering the whole
+/// input: feed lines in order (terminators stripped), emit what comes
+/// back. Carries the stateful pieces — pattern-range filter, replacement
+/// budget, line counter — across calls, so `--range`, `--first-in-file`,
+/// and `--max-replacements` all work on streams.
+///
+/// Multiline operations need the whole buffer and are rejected at
+/// construction; callers fall back to buffered processing for those.
+pub struct LineProcessor<'a> {
+    op: &'a Op,
+    matcher: &'a Matcher,
+    range_filter: RangeFilter,
+    budget: Option<usize>,
+    line_num: usize,
+}
+
+impl<'a> LineProcessor<'a> {
+    pub fn new(
+        op: &'a Op,
+        matcher: &'a Matcher,
+        range: Option<RangeSpec>,
+    ) -> Result<Self, RipsedError> {
+        if op.is_multiline() {
+            return Err(RipsedError::invalid_request(
+                "multiline operations cannot be streamed",
+                "multiline patterns match against the whole buffer; buffer the input instead",
+            ));
+        }
+        Ok(Self {
+            op,
+            matcher,
+            range_filter: RangeFilter::new(range.as_ref())?,
+            budget: replace_budget(op),
+            line_num: 0,
+        })
+    }
+
+    /// Process the next input line (without its terminator).
+    pub fn process_line(&mut self, line: &str) -> StreamedLine {
+        self.line_num += 1;
+        if !self.range_filter.admits(self.line_num, line) {
+            return StreamedLine {
+                lines: vec![line.to_string()],
+                changed: false,
+            };
+        }
+        // Streaming has no surrounding-lines buffer; context_lines is 0 and
+        // the context slice is just this line, which build_context handles.
+        let lines_slice = [line];
+        let cx = LineCtx {
+            line,
+            line_num: self.line_num,
+            matcher: self.matcher,
+            lines: &lines_slice,
+            idx: 0,
+            context_lines: 0,
+            line_sep: "\n",
+        };
+        match dispatch_op(self.op, &cx, &mut self.budget) {
+            LineAction::Unchanged => StreamedLine {
+                lines: vec![line.to_string()],
+                changed: false,
+            },
+            LineAction::Replaced { new_line, .. } => StreamedLine {
+                lines: vec![new_line],
+                changed: true,
+            },
+            LineAction::Deleted { .. } => StreamedLine {
+                lines: Vec::new(),
+                changed: true,
+            },
+            LineAction::InsertedAfter { content, .. } => StreamedLine {
+                lines: vec![line.to_string(), content],
+                changed: true,
+            },
+            LineAction::InsertedBefore { content, .. } => StreamedLine {
+                lines: vec![content, line.to_string()],
+                changed: true,
+            },
+        }
+    }
 }
 
 /// Apply a text transformation to matched portions of a line.
@@ -1312,6 +1415,99 @@ mod tests {
         let result = apply("x\nx\n", &op, &matcher, pattern_range("NEVER", "END"), 0).unwrap();
         assert!(result.text.is_none());
         assert!(result.changes.is_empty());
+    }
+
+    // ── Streaming LineProcessor ──
+
+    #[test]
+    fn test_line_processor_matches_buffered_apply() {
+        // The streaming path must produce the same lines as buffered apply
+        // for every line-scoped op shape.
+        let text = "alpha x\nplain\nx x\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+
+        let buffered = apply(text, &op, &matcher, None, 0).unwrap().text.unwrap();
+
+        let mut processor = LineProcessor::new(&op, &matcher, None).unwrap();
+        let mut streamed = String::new();
+        for line in text.lines() {
+            for out in processor.process_line(line).lines {
+                streamed.push_str(&out);
+                streamed.push('\n');
+            }
+        }
+        assert_eq!(streamed, buffered);
+    }
+
+    #[test]
+    fn test_line_processor_rejects_multiline_ops() {
+        let op = Op::Replace {
+            find: "a\nb".to_string(),
+            replace: "ab".to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: true,
+            count: ReplaceCount::All,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let err = match LineProcessor::new(&op, &matcher, None) {
+            Err(e) => e,
+            Ok(_) => panic!("multiline op must be rejected by LineProcessor"),
+        };
+        assert_eq!(err.code, crate::error::ErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn test_line_processor_budget_spans_calls() {
+        let op = counted_replace_op("x", "y", ReplaceCount::Max(2));
+        let matcher = Matcher::new(&op).unwrap();
+        let mut processor = LineProcessor::new(&op, &matcher, None).unwrap();
+        assert!(processor.process_line("x x").changed); // consumes 2
+        let third = processor.process_line("x");
+        assert!(!third.changed, "budget exhausted across calls");
+        assert_eq!(third.lines, vec!["x".to_string()]);
+    }
+
+    #[test]
+    fn test_line_processor_pattern_range_state_spans_calls() {
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let range = pattern_range("BEGIN", "END");
+        let mut processor = LineProcessor::new(&op, &matcher, range).unwrap();
+        assert_eq!(processor.process_line("x").lines, vec!["x"]); // before region
+        processor.process_line("BEGIN");
+        assert_eq!(processor.process_line("x").lines, vec!["y"]); // inside
+        processor.process_line("END");
+        assert_eq!(processor.process_line("x").lines, vec!["x"]); // after
+    }
+
+    #[test]
+    fn test_line_processor_insert_and_delete_shapes() {
+        let op = Op::InsertAfter {
+            find: "mark".to_string(),
+            content: "inserted".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let mut processor = LineProcessor::new(&op, &matcher, None).unwrap();
+        assert_eq!(
+            processor.process_line("mark").lines,
+            vec!["mark".to_string(), "inserted".to_string()]
+        );
+
+        let op = Op::Delete {
+            find: "gone".to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let mut processor = LineProcessor::new(&op, &matcher, None).unwrap();
+        let out = processor.process_line("gone");
+        assert!(out.lines.is_empty());
+        assert!(out.changed);
     }
 
     #[test]

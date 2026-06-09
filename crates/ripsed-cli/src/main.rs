@@ -10,7 +10,7 @@ mod shared;
 use args::Cli;
 use clap::Parser;
 use ripsed_json::detect::{InputMode, detect_stdin};
-use std::io::{IsTerminal, Read};
+use std::io::{BufRead, IsTerminal, Read};
 use std::process;
 
 fn main() {
@@ -47,8 +47,7 @@ fn run() -> Result<(), i32> {
 
     // Force pipe mode when --pipe is set
     if cli.pipe {
-        let data = read_stdin_bytes()?;
-        return pipe_mode::run_pipe_mode(&cli, &data);
+        return run_pipe(&cli);
     }
 
     // Check if stdin has data (pipe mode detection)
@@ -57,28 +56,61 @@ fn run() -> Result<(), i32> {
     if cli.json || (!stdin_is_tty && !cli.no_json) {
         // Attempt JSON/agent mode
         if !stdin_is_tty {
-            let input = read_stdin_string()?;
-
-            // If stdin was empty and --json wasn't explicitly requested,
-            // fall through to file mode (subprocess/test environments often
-            // have stdin as a closed pipe rather than a tty).
-            if input.is_empty() && !cli.json {
-                return file_mode::run_file_mode(&cli, &config);
-            }
-
             if cli.json {
+                let input = read_stdin_string()?;
                 return json_mode::run_json_mode(&input, &config, cli.jsonl);
             }
 
-            // Auto-detect
-            let mut cursor = std::io::Cursor::new(input.as_bytes());
-            match detect_stdin(&mut cursor) {
-                Ok(InputMode::Json(json)) => json_mode::run_json_mode(&json, &config, cli.jsonl),
-                Ok(InputMode::Pipe(data)) => pipe_mode::run_pipe_mode(&cli, &data),
+            // Auto-detect: peek at the buffered first chunk without
+            // consuming it. Anything starting with '{' might be a JSON
+            // request and is buffered fully for the existing detection;
+            // everything else streams through pipe mode line by line.
+            let stdin = std::io::stdin();
+            let mut reader = std::io::BufReader::new(stdin.lock());
+            let first_chunk = match reader.fill_buf() {
+                Ok(chunk) => chunk,
                 Err(e) => {
                     eprintln!("ripsed: failed to read stdin: {e}");
-                    Err(1)
+                    return Err(1);
                 }
+            };
+
+            // Empty stdin without explicit --json: fall through to file
+            // mode (subprocess/test environments often have stdin as a
+            // closed pipe rather than a tty).
+            if first_chunk.is_empty() {
+                drop(reader);
+                return file_mode::run_file_mode(&cli, &config);
+            }
+
+            let starts_with_brace = first_chunk
+                .iter()
+                .find(|b| !b.is_ascii_whitespace())
+                .is_some_and(|&b| b == b'{');
+
+            if starts_with_brace || cli.multiline {
+                // Possible JSON request, or a multiline op that needs the
+                // whole buffer either way.
+                let mut data = Vec::new();
+                if let Err(e) = reader.read_to_end(&mut data) {
+                    eprintln!("ripsed: failed to read stdin: {e}");
+                    return Err(1);
+                }
+                let mut cursor = std::io::Cursor::new(data);
+                match detect_stdin(&mut cursor) {
+                    Ok(InputMode::Json(json)) => {
+                        json_mode::run_json_mode(&json, &config, cli.jsonl)
+                    }
+                    Ok(InputMode::Pipe(data)) => pipe_mode::run_pipe_mode(&cli, &data),
+                    Err(e) => {
+                        eprintln!("ripsed: failed to read stdin: {e}");
+                        Err(1)
+                    }
+                }
+            } else {
+                let stdout = std::io::stdout();
+                let mut out = std::io::BufWriter::new(stdout.lock());
+                pipe_mode::run_pipe_mode_streaming(&cli, &mut reader, &mut out)
             }
         } else if let Some(ref json_arg) = cli.json_input {
             json_mode::run_json_mode(json_arg, &config, cli.jsonl)
@@ -88,12 +120,25 @@ fn run() -> Result<(), i32> {
         }
     } else if !stdin_is_tty {
         // Pipe mode: stdin -> stdout (--no-json was set)
-        let data = read_stdin_bytes()?;
-        pipe_mode::run_pipe_mode(&cli, &data)
+        run_pipe(&cli)
     } else {
         // File mode
         file_mode::run_file_mode(&cli, &config)
     }
+}
+
+/// Run pipe mode over stdin: streaming line-by-line, except multiline
+/// operations which need the whole buffer.
+fn run_pipe(cli: &Cli) -> Result<(), i32> {
+    if cli.multiline {
+        let data = read_stdin_bytes()?;
+        return pipe_mode::run_pipe_mode(cli, &data);
+    }
+    let stdin = std::io::stdin();
+    let mut reader = std::io::BufReader::new(stdin.lock());
+    let stdout = std::io::stdout();
+    let mut out = std::io::BufWriter::new(stdout.lock());
+    pipe_mode::run_pipe_mode_streaming(cli, &mut reader, &mut out)
 }
 
 fn read_stdin_bytes() -> Result<Vec<u8>, i32> {
