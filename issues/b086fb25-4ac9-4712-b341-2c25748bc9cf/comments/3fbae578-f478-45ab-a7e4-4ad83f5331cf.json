@@ -1,0 +1,10 @@
+{
+  "uuid": "3fbae578-f478-45ab-a7e4-4ad83f5331cf",
+  "issue_uuid": "b086fb25-4ac9-4712-b341-2c25748bc9cf",
+  "author": "w3Lb",
+  "content": "Plan (tautology removal largely done in 0.2.8; this is the remainder): (1) Extract duplicated test helpers (setup_test/setup_json_test/setup_single_file/setup_multi_file/json_path copied across all 11 CLI integration test files) into tests/common/mod.rs. (2) interactive.rs: extract pure parse_confirm_response(&str) -> ConfirmAction from confirm_file and unit-test it (y/n/a/s/q, case, whitespace, empty=No) — confirm_file is untestable via integration since piped stdin never reaches file mode. (3) Fix tautological test_json_mode_dry_run_does_not_write (json_mode.rs:339) — it parses a request but never runs the mode; make it call run_json_mode and assert Ok + file unchanged; remove stale comment claiming run_json_mode calls process::exit. (4) Strengthen dry_run_does_not_modify_files in cli_human_test.rs to assert the preview output actually shows the proposed change. (5) New hardening_test.rs adversarial tests: invalid UTF-8 stdin in pipe mode exits 1 with clear error; readonly target file fails gracefully without corrupting (Unix, skipped as root); undo log written 0600 (Unix); explicit --json with empty stdin yields invalid_request JSON error.",
+  "created_at": "2026-06-09T19:44:29.541565304Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAaCtY+QD4LGIuMuixHmVL8LaoxciIkTy0B0wY5554Pfvv7TE0GbmBGNig+WaeE5iCCc8fRHhBXDpsFBLG6yzLDQ=="
+}
