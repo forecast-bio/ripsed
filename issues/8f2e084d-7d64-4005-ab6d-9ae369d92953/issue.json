@@ -2,11 +2,12 @@
   "uuid": "8f2e084d-7d64-4005-ab6d-9ae369d92953",
   "display_id": 96,
   "title": "Stream pipe mode line-by-line instead of buffering all of stdin",
-  "status": "open",
+  "status": "closed",
   "priority": "medium",
   "created_by": "w3Lb",
   "created_at": "2026-06-09T20:20:23.652290511Z",
-  "updated_at": "2026-06-09T20:25:00.067180952Z",
+  "updated_at": "2026-06-09T21:26:38.540424872Z",
+  "closed_at": "2026-06-09T21:26:38.540424872Z",
   "labels": [
     "feature"
   ],
