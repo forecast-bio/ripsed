@@ -1,0 +1,10 @@
+{
+  "uuid": "156235e8-f168-4126-97b3-13248efbdab9",
+  "issue_uuid": "d755d76e-6dc9-4873-9472-ccd025c51dd2",
+  "author": "w3Lb",
+  "content": "WHY: rg transcodes UTF-16 via BOM and tolerates non-UTF-8 by matching bytes; ripsed hard-requires UTF-8 (reader.rs String::from_utf8 error) so Latin-1/UTF-16 files are untouchable. Full bytes-mode would be invasive (ripsed-core is &str end-to-end) — this issue is the pragmatic middle: transcoding at the I/O boundary. SCOPE: ripsed-fs reader — detect BOM (UTF-8 BOM, UTF-16 LE/BE); transcode UTF-16 to String on read (encoding_rs, the rg dependency); record the source encoding + BOM presence in a ReadOutcome struct. Writer: re-encode + re-attach BOM on write so a UTF-16 file stays UTF-16 (undo log stores the decoded text + encoding tag). UTF-8 BOM: preserve it (currently it would be treated as content on line 1 — verify and test). Undecodable files: skip with a distinct error code (encoding_unsupported) instead of generic invalid-UTF-8, surfaced in JSON errors. NON-GOALS: charset guessing (Latin-1 heuristics), bytes-mode matching. TESTS: UTF-16LE/BE roundtrip preserves encoding + BOM + content, UTF-8-BOM file roundtrip keeps BOM and doesn't match BOM as content, mixed tree (UTF-8 + UTF-16) replace touches both, undo restores original bytes exactly.",
+  "created_at": "2026-06-09T20:21:17.197640590Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAbYBhIdaEwWVRMTeZtCUGGRsYNo+bXAevsdUcNKH6DCG/kfPnngUWbaxHQUeE8/GOPoQxnYnx4txpfKuOVv53Aw=="
+}
