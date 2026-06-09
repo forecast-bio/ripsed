@@ -1,0 +1,10 @@
+{
+  "uuid": "e766de48-773b-4993-86a6-f2430ac8eac9",
+  "issue_uuid": "669f4fd7-efb7-4655-8c34-9275cf284baf",
+  "author": "w3Lb",
+  "content": "WHY: rg uses 0=found, 1=not found, 2=error; ripsed conflates 'no matches' and 'real error' as exit 1 (file_mode.rs:205, script_mode.rs:165, plus every error path), so scripts can't distinguish 'nothing to do' from 'something broke'. SCOPE: define the contract — 0: ran and made/previewed changes; 1: ran cleanly, zero matches; 2: error (bad regex, IO failure, invalid request, lock timeout). Mechanics: the Err(i32) plumbing already exists end-to-end (post-#22), so this is mostly changing which code each site returns; JSON mode: success:false responses split — validation/IO errors exit 2, no_matches exits 1. BREAKING: scripts checking 'exit != 0' keep working; scripts checking '== 1' for errors break — CHANGELOG must flag it loudly, target a minor bump. Audit every Err(1) site (rg -n 'Err(1)' crates/ripsed-cli). TESTS: update the existing exit-code assertions (undo empty log, no-match, invalid regex) to the new taxonomy; new tests asserting 2 for invalid regex / missing root / unreadable file, 1 only for clean no-match. Document in README CLI reference.",
+  "created_at": "2026-06-09T20:24:01.755952897Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABALmc8QXpZ+FyyUAYjaOtAxDv0E49OE2WuBDAjMNR7b5fdxykGkREyGO/utbBr6HbO1BHZjsOaEymvglwrxAzoDA=="
+}
