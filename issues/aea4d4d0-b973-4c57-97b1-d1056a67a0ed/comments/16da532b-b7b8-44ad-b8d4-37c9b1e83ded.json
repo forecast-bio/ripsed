@@ -1,0 +1,10 @@
+{
+  "uuid": "16da532b-b7b8-44ad-b8d4-37c9b1e83ded",
+  "issue_uuid": "aea4d4d0-b973-4c57-97b1-d1056a67a0ed",
+  "author": "w3Lb",
+  "content": "Delivered in commit 55a7b96: run() -> Result<(), i32>, result_to_code adapter removed, three process::exit(1) sites in stdin-read closures replaced with read_stdin_bytes()/read_stdin_string() helpers returning Err(1). Sole process::exit now in main() after run() returns, so all RAII destructors run. Verified: cargo test --workspace all green, clippy -D warnings clean, fmt clean. Stale comment in json_mode.rs:353 (claims run_json_mode calls process::exit) noted for cleanup under #84.",
+  "created_at": "2026-06-09T19:42:19.662966824Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAreXTdKS6DWcNeofvsekCbMb0AkkL4gBGQxwvwG6ic4DOWoowNCglPywp1dY6VQEXOeYtjrlwG2jD/cVWuYpfDA=="
+}
