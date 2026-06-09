@@ -183,6 +183,7 @@ mod tests {
 
     fn make_replace_op(find: &str, replace: &str) -> Op {
         Op::Replace {
+            multiline: false,
             find: find.to_string(),
             replace: replace.to_string(),
             regex: false,

@@ -28,6 +28,7 @@ target
 
 # === Crosslink managed (do not edit between markers) ===
 # .crosslink/ — machine-local state (never commit)
+.crosslink/.cache/
 .crosslink/issues.db
 .crosslink/issues.db-wal
 .crosslink/issues.db-shm

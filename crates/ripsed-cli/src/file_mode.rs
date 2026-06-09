@@ -212,6 +212,7 @@ pub fn build_op_from_cli(cli: &Cli, find: &str) -> Op {
 
     if cli.delete {
         Op::Delete {
+            multiline: false,
             find,
             regex,
             case_insensitive,
@@ -270,6 +271,7 @@ pub fn build_op_from_cli(cli: &Cli, find: &str) -> Op {
         }
     } else {
         Op::Replace {
+            multiline: false,
             find,
             replace: cli.replace.clone().unwrap_or_default(),
             regex,

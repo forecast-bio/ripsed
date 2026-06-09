@@ -1,6 +1,6 @@
 use crate::diff::{Change, ChangeContext, FileChanges, OpResult};
 use crate::error::RipsedError;
-use crate::matcher::Matcher;
+use crate::matcher::{MatchSpan, Matcher};
 use crate::operation::{LineRange, Op, TransformMode};
 use crate::undo::UndoEntry;
 
@@ -260,6 +260,16 @@ pub fn apply(
     line_range: Option<LineRange>,
     context_lines: usize,
 ) -> Result<EngineOutput, RipsedError> {
+    if op.is_multiline() {
+        if line_range.is_some() {
+            return Err(RipsedError::invalid_request(
+                "line ranges are not supported in multiline mode",
+                "multiline patterns match against the whole buffer; remove the line range or the multiline flag",
+            ));
+        }
+        return Ok(apply_multiline(text, op, matcher, context_lines));
+    }
+
     let crlf = uses_crlf(text);
     let line_sep = if crlf { "\r\n" } else { "\n" };
     let lines: Vec<&str> = text.lines().collect();
@@ -452,6 +462,101 @@ fn dedent_line(line: &str, amount: usize, use_tabs: bool) -> String {
     line[remove..].to_string()
 }
 
+/// Apply a multiline (whole-buffer) Replace or Delete operation.
+///
+/// Unlike the line-by-line path, the buffer is never split and rejoined:
+/// each match span's replacement is spliced into the original text, so line
+/// separators outside the matched spans are untouched byte-for-byte and the
+/// trailing-newline state is preserved naturally.
+///
+/// `Change` metadata for a span: `line` is the 1-indexed line where the span
+/// starts, `before`/`after` carry the raw span bytes (including any `\r\n`
+/// inside it), and `context` holds the lines around the span — so the
+/// metadata always matches the bytes actually written.
+fn apply_multiline(text: &str, op: &Op, matcher: &Matcher, context_lines: usize) -> EngineOutput {
+    // `is_multiline()` is true only for Replace and Delete; Delete removes
+    // the matched span (replacement = "").
+    let (replacement, is_delete) = match op {
+        Op::Replace { replace, .. } => (replace.as_str(), false),
+        _ => ("", true),
+    };
+
+    let spans = matcher.find_replacements(text, replacement);
+    if spans.is_empty() {
+        return EngineOutput {
+            text: None,
+            changes: Vec::new(),
+            undo: None,
+        };
+    }
+
+    let lines: Vec<&str> = text.lines().collect();
+    let mut out = String::with_capacity(text.len());
+    let mut changes = Vec::with_capacity(spans.len());
+    let mut last_end = 0usize;
+
+    for MatchSpan {
+        start,
+        end,
+        replacement,
+    } in spans
+    {
+        out.push_str(&text[last_end..start]);
+        let before = &text[start..end];
+        let start_line_idx = text[..start].matches('\n').count();
+        let end_line_idx = start_line_idx + before.matches('\n').count();
+        changes.push(Change {
+            line: start_line_idx + 1,
+            before: before.to_string(),
+            after: if is_delete {
+                None
+            } else {
+                Some(replacement.clone())
+            },
+            context: Some(build_span_context(
+                &lines,
+                start_line_idx,
+                end_line_idx,
+                context_lines,
+            )),
+        });
+        out.push_str(&replacement);
+        last_end = end;
+    }
+    out.push_str(&text[last_end..]);
+
+    EngineOutput {
+        text: Some(out),
+        changes,
+        undo: Some(UndoEntry {
+            original_text: text.to_string(),
+        }),
+    }
+}
+
+/// Build display context around a span covering `start_idx..=end_idx`
+/// (0-indexed line indices): up to `context_lines` lines before the span's
+/// first line and after its last line.
+fn build_span_context(
+    lines: &[&str],
+    start_idx: usize,
+    end_idx: usize,
+    context_lines: usize,
+) -> ChangeContext {
+    let before_start = start_idx.saturating_sub(context_lines);
+    let before = lines[before_start..start_idx.min(lines.len())]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    let after_start = (end_idx + 1).min(lines.len());
+    let after_end = (end_idx + 1 + context_lines).min(lines.len());
+    let after = lines[after_start..after_end]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    ChangeContext { before, after }
+}
+
 fn build_context(lines: &[&str], idx: usize, context_lines: usize) -> ChangeContext {
     let start = idx.saturating_sub(context_lines);
     let end = (idx + context_lines + 1).min(lines.len());
@@ -490,6 +595,7 @@ mod tests {
     fn test_simple_replace() {
         let text = "hello world\nfoo bar\nhello again\n";
         let op = Op::Replace {
+            multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
             regex: false,
@@ -505,6 +611,7 @@ mod tests {
     fn test_delete_lines() {
         let text = "keep\ndelete me\nkeep too\n";
         let op = Op::Delete {
+            multiline: false,
             find: "delete".to_string(),
             regex: false,
             case_insensitive: false,
@@ -518,6 +625,7 @@ mod tests {
     fn test_no_changes() {
         let text = "nothing matches here\n";
         let op = Op::Replace {
+            multiline: false,
             find: "zzz".to_string(),
             replace: "aaa".to_string(),
             regex: false,
@@ -533,6 +641,7 @@ mod tests {
     fn test_line_range() {
         let text = "line1\nline2\nline3\nline4\n";
         let op = Op::Replace {
+            multiline: false,
             find: "line".to_string(),
             replace: "row".to_string(),
             regex: false,
@@ -555,6 +664,7 @@ mod tests {
     fn test_crlf_replace_preserves_crlf() {
         let text = "hello world\r\nfoo bar\r\nhello again\r\n";
         let op = Op::Replace {
+            multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
             regex: false,
@@ -569,6 +679,7 @@ mod tests {
     fn test_crlf_delete_preserves_crlf() {
         let text = "keep\r\ndelete me\r\nkeep too\r\n";
         let op = Op::Delete {
+            multiline: false,
             find: "delete".to_string(),
             regex: false,
             case_insensitive: false,
@@ -582,6 +693,7 @@ mod tests {
     fn test_crlf_no_trailing_newline() {
         let text = "hello world\r\nfoo bar";
         let op = Op::Replace {
+            multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
             regex: false,
@@ -659,6 +771,182 @@ mod tests {
         assert_eq!(after, "alpha\ninserted");
     }
 
+    // ── Multiline (whole-buffer) mode ──
+
+    fn multiline_replace_op(find: &str, replace: &str, regex: bool) -> Op {
+        Op::Replace {
+            find: find.to_string(),
+            replace: replace.to_string(),
+            regex,
+            case_insensitive: false,
+            multiline: true,
+        }
+    }
+
+    fn multiline_delete_op(find: &str, regex: bool) -> Op {
+        Op::Delete {
+            find: find.to_string(),
+            regex,
+            case_insensitive: false,
+            multiline: true,
+        }
+    }
+
+    #[test]
+    fn test_multiline_literal_replace_across_lines() {
+        let text = "fn old(\n    x: u32,\n) {}\n";
+        let op = multiline_replace_op("old(\n    x: u32,\n)", "new(x: u32)", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "fn new(x: u32) {}\n");
+        assert_eq!(result.changes.len(), 1);
+        assert_eq!(result.changes[0].line, 1);
+        assert_eq!(result.changes[0].before, "old(\n    x: u32,\n)");
+        assert_eq!(result.changes[0].after.as_deref(), Some("new(x: u32)"));
+    }
+
+    #[test]
+    fn test_multiline_regex_captures_across_lines() {
+        let text = "alpha\nbeta\ngamma\n";
+        // Swap the first two lines using a cross-line capture.
+        let op = multiline_replace_op(r"(\w+)\n(\w+)\n", "$2\n$1\n", true);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "beta\nalpha\ngamma\n");
+        assert_eq!(result.changes[0].after.as_deref(), Some("beta\nalpha\n"));
+    }
+
+    #[test]
+    fn test_multiline_delete_removes_span_not_lines() {
+        let text = "keep [START]\ndoomed\n[END] keep\n";
+        let op = multiline_delete_op("[START]\ndoomed\n[END]", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        // Only the span is removed; surrounding text on the boundary lines stays.
+        assert_eq!(result.text.unwrap(), "keep  keep\n");
+        assert_eq!(result.changes[0].after, None);
+        assert_eq!(result.changes[0].before, "[START]\ndoomed\n[END]");
+    }
+
+    #[test]
+    fn test_multiline_crlf_metadata_matches_output_bytes() {
+        let text = "alpha\r\nbeta\r\ngamma\r\n";
+        let op = multiline_replace_op("alpha\r\nbeta", "one\r\ntwo", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        let output = result.text.unwrap();
+        assert_eq!(output, "one\r\ntwo\r\ngamma\r\n");
+        let change = &result.changes[0];
+        assert_eq!(change.before, "alpha\r\nbeta");
+        let after = change.after.as_deref().unwrap();
+        assert_eq!(after, "one\r\ntwo");
+        assert!(
+            output.contains(after),
+            "metadata {after:?} must appear verbatim in output {output:?}"
+        );
+    }
+
+    #[test]
+    fn test_multiline_match_at_eof_without_trailing_newline() {
+        let text = "head\ntail";
+        let op = multiline_replace_op("head\ntail", "joined", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        let output = result.text.unwrap();
+        assert_eq!(output, "joined");
+        assert!(!output.ends_with('\n'));
+    }
+
+    #[test]
+    fn test_multiline_preserves_untouched_separators() {
+        // Mixed line endings outside the match must pass through untouched —
+        // buffer mode never rejoins lines, so no majority-vote normalization.
+        let text = "a\r\nMARK\nb\n";
+        let op = multiline_replace_op("MARK", "X", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "a\r\nX\nb\n");
+    }
+
+    #[test]
+    fn test_multiline_with_line_range_is_rejected() {
+        let op = multiline_replace_op("a", "b", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let range = LineRange {
+            start: 1,
+            end: Some(2),
+        };
+        let err = apply("a\n", &op, &matcher, Some(range), 0).unwrap_err();
+        assert_eq!(err.code, crate::error::ErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn test_multiline_change_line_numbers_ascending_and_correct() {
+        let text = "x\nfoo\nx\nfoo\nx\nfoo\n";
+        let op = multiline_replace_op("foo\nx", "bar\nx", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        // Non-overlapping left-to-right: matches start on lines 2 and 4.
+        let line_numbers: Vec<usize> = result.changes.iter().map(|c| c.line).collect();
+        assert_eq!(line_numbers, vec![2, 4]);
+        assert_eq!(result.text.unwrap(), "x\nbar\nx\nbar\nx\nfoo\n");
+    }
+
+    #[test]
+    fn test_multiline_no_match_returns_none() {
+        let op = multiline_replace_op("absent\npattern", "x", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply("some\ntext\n", &op, &matcher, None, 0).unwrap();
+        assert!(result.text.is_none());
+        assert!(result.changes.is_empty());
+        assert!(result.undo.is_none());
+    }
+
+    #[test]
+    fn test_multiline_delete_everything_yields_empty_string() {
+        let text = "all\ngone\n";
+        let op = multiline_delete_op("all\ngone\n", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "");
+    }
+
+    #[test]
+    fn test_multiline_undo_roundtrip() {
+        let text = "one\ntwo\nthree\n";
+        let op = multiline_replace_op("one\ntwo", "1\n2", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "1\n2\nthree\n");
+        assert_eq!(result.undo.unwrap().original_text, text);
+    }
+
+    #[test]
+    fn test_multiline_output_equals_matcher_replace() {
+        // Buffer-mode splicing must reproduce Matcher::replace on the whole
+        // text exactly — they share semantics by contract.
+        let text = "aaa\nbbb aaa\nccc\n";
+        let op = multiline_replace_op("aa", "Z", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(
+            result.text.unwrap(),
+            matcher.replace(text, "Z").unwrap(),
+            "span splicing must match replace_all output"
+        );
+    }
+
+    #[test]
+    fn test_multiline_span_context() {
+        let text = "ctx1\nctx2\nA\nB\nctx3\nctx4\n";
+        let op = multiline_replace_op("A\nB", "AB", false);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 1).unwrap();
+        let ctx = result.changes[0].context.as_ref().unwrap();
+        assert_eq!(ctx.before, vec!["ctx2".to_string()]);
+        assert_eq!(ctx.after, vec!["ctx3".to_string()]);
+    }
+
     #[test]
     fn test_uses_crlf_detection() {
         assert!(uses_crlf("a\r\nb\r\n"));
@@ -676,6 +964,7 @@ mod tests {
     fn test_empty_input_text() {
         let text = "";
         let op = Op::Replace {
+            multiline: false,
             find: "anything".to_string(),
             replace: "something".to_string(),
             regex: false,
@@ -691,6 +980,7 @@ mod tests {
     fn test_single_line_no_trailing_newline() {
         let text = "hello world";
         let op = Op::Replace {
+            multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
             regex: false,
@@ -708,6 +998,7 @@ mod tests {
     fn test_whitespace_only_lines() {
         let text = "  \n\t\n   \t  \n";
         let op = Op::Replace {
+            multiline: false,
             find: "\t".to_string(),
             replace: "TAB".to_string(),
             regex: false,
@@ -725,6 +1016,7 @@ mod tests {
         let long_word = "x".repeat(100_000);
         let text = format!("before\n{long_word}\nafter\n");
         let op = Op::Replace {
+            multiline: false,
             find: "x".to_string(),
             replace: "y".to_string(),
             regex: false,
@@ -741,6 +1033,7 @@ mod tests {
     fn test_unicode_emoji() {
         let text = "hello world\n";
         let op = Op::Replace {
+            multiline: false,
             find: "world".to_string(),
             replace: "\u{1F30D}".to_string(), // earth globe emoji
             regex: false,
@@ -755,6 +1048,7 @@ mod tests {
     fn test_unicode_cjk() {
         let text = "\u{4F60}\u{597D}\u{4E16}\u{754C}\n"; // "hello world" in Chinese
         let op = Op::Replace {
+            multiline: false,
             find: "\u{4E16}\u{754C}".to_string(),    // "world"
             replace: "\u{5730}\u{7403}".to_string(), // "earth"
             regex: false,
@@ -770,6 +1064,7 @@ mod tests {
         // e + combining acute accent = e-acute
         let text = "caf\u{0065}\u{0301}\n";
         let op = Op::Replace {
+            multiline: false,
             find: "caf\u{0065}\u{0301}".to_string(),
             replace: "coffee".to_string(),
             regex: false,
@@ -785,6 +1080,7 @@ mod tests {
         // In literal mode, regex metacharacters should be treated as literals
         let text = "price is $10.00 (USD)\n";
         let op = Op::Replace {
+            multiline: false,
             find: "$10.00".to_string(),
             replace: "$20.00".to_string(),
             regex: false,
@@ -800,6 +1096,7 @@ mod tests {
         // "aaa" with pattern "aa" — standard str::replace does non-overlapping left-to-right
         let text = "aaa\n";
         let op = Op::Replace {
+            multiline: false,
             find: "aa".to_string(),
             replace: "b".to_string(),
             regex: false,
@@ -816,6 +1113,7 @@ mod tests {
         let text = "line1\nline2\nline3\nline4\nline5\n";
         let input_line_count = text.lines().count();
         let op = Op::Replace {
+            multiline: false,
             find: "line".to_string(),
             replace: "row".to_string(),
             regex: false,
@@ -833,6 +1131,7 @@ mod tests {
         // Pattern that exists nowhere in text
         let text = "alpha\nbeta\ngamma\n";
         let op = Op::Replace {
+            multiline: false,
             find: "zzzzzz".to_string(),
             replace: "y".to_string(),
             regex: false,
@@ -848,6 +1147,7 @@ mod tests {
     fn test_undo_entry_stores_original() {
         let text = "hello\nworld\n";
         let op = Op::Replace {
+            multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
             regex: false,
@@ -863,6 +1163,7 @@ mod tests {
     fn test_determinism_same_input_same_output() {
         let text = "foo bar baz\nhello world\nfoo again\n";
         let op = Op::Replace {
+            multiline: false,
             find: "foo".to_string(),
             replace: "qux".to_string(),
             regex: false,
@@ -1838,6 +2139,7 @@ mod tests {
         // Line 4 = "delta" (CRLF)
         let text = "alpha\nbeta\r\ngamma match\ndelta\r\n";
         let op = Op::Replace {
+            multiline: false,
             find: "match".to_string(),
             replace: "HIT".to_string(),
             regex: false,
@@ -1861,6 +2163,7 @@ mod tests {
     fn test_line_number_for_single_line_no_newline() {
         let text = "only line matches here";
         let op = Op::Replace {
+            multiline: false,
             find: "matches".to_string(),
             replace: "OK".to_string(),
             regex: false,
@@ -1878,6 +2181,7 @@ mod tests {
     fn test_first_line_is_one_not_zero() {
         let text = "match first\nother\nother\n";
         let op = Op::Replace {
+            multiline: false,
             find: "match".to_string(),
             replace: "X".to_string(),
             regex: false,
@@ -1899,6 +2203,7 @@ mod tests {
     fn test_delete_reports_original_line_number() {
         let text = "keep1\ndelete_me\nkeep2\n";
         let op = Op::Delete {
+            multiline: false,
             find: "delete_me".to_string(),
             regex: false,
             case_insensitive: false,
@@ -1924,6 +2229,7 @@ mod tests {
     fn test_delete_all_lines_produces_empty_file() {
         let text = "only line\n";
         let op = Op::Delete {
+            multiline: false,
             find: "only".to_string(),
             regex: false,
             case_insensitive: false,
@@ -1942,6 +2248,7 @@ mod tests {
     fn test_delete_all_lines_crlf_produces_empty_file() {
         let text = "only line\r\n";
         let op = Op::Delete {
+            multiline: false,
             find: "only".to_string(),
             regex: false,
             case_insensitive: false,
@@ -1986,6 +2293,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                multiline: false,
                 find: find.clone(),
                 replace: replace.clone(),
                 regex: false,
@@ -2010,6 +2318,7 @@ mod proptests {
             // Use a pattern with a NUL byte which will never appear in text generated
             // by arb_multiline_text
             let op = Op::Replace {
+                multiline: false,
                 find: "\x00\x00NOMATCH\x00\x00".to_string(),
                 replace: "replacement".to_string(),
                 regex: false,
@@ -2030,6 +2339,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                multiline: false,
                 find,
                 replace,
                 regex: false,
@@ -2050,6 +2360,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                multiline: false,
                 find,
                 replace,
                 regex: false,
@@ -2235,6 +2546,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                multiline: false,
                 find,
                 replace,
                 regex: false,
@@ -2304,6 +2616,7 @@ mod proptests {
             let text = merged.join("\n") + "\n";
 
             let op = Op::Delete {
+                multiline: false,
                 find: find.clone(),
                 regex: false,
                 case_insensitive: false,
@@ -2351,6 +2664,7 @@ mod proptests {
                 "line {find} one\r\n{find} middle\r\nanother {find} here\r\nending\r\n"
             );
             let op = Op::Replace {
+                multiline: false,
                 find: find.clone(),
                 replace,
                 regex: false,
@@ -2382,6 +2696,7 @@ mod proptests {
                 "head\n{find} one\nmiddle\n{find} two {find}\ntail\n"
             );
             let op = Op::Replace {
+                multiline: false,
                 find: find.clone(),
                 replace,
                 regex: false,
@@ -2408,6 +2723,7 @@ mod proptests {
             prop_assume!(!text.ends_with('\n'));
 
             let op = Op::Replace {
+                multiline: false,
                 find,
                 replace,
                 regex: false,

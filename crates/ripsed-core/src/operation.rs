@@ -53,6 +53,10 @@ pub enum Op {
         regex: bool,
         #[serde(default)]
         case_insensitive: bool,
+        /// Match against the whole buffer instead of line-by-line, allowing
+        /// patterns to span line boundaries (like ripgrep's `-U`).
+        #[serde(default)]
+        multiline: bool,
     },
     Delete {
         find: String,
@@ -60,6 +64,10 @@ pub enum Op {
         regex: bool,
         #[serde(default)]
         case_insensitive: bool,
+        /// Match against the whole buffer; deletes the matched span rather
+        /// than whole lines (like ripgrep's `-U`).
+        #[serde(default)]
+        multiline: bool,
     },
     InsertAfter {
         find: String,
@@ -198,6 +206,18 @@ impl Op {
         }
     }
 
+    /// Whether this operation matches against the whole buffer (allowing
+    /// patterns to span line boundaries) instead of line-by-line.
+    ///
+    /// Only `Replace` and `Delete` support multiline matching; every other
+    /// operation is inherently line-scoped and always returns `false`.
+    pub fn is_multiline(&self) -> bool {
+        match self {
+            Op::Replace { multiline, .. } | Op::Delete { multiline, .. } => *multiline,
+            _ => false,
+        }
+    }
+
     pub fn is_regex(&self) -> bool {
         match self {
             Op::Replace { regex, .. }
@@ -259,6 +279,7 @@ mod tests {
     #[test]
     fn replace_op_tag_wire_format() {
         let op = Op::Replace {
+            multiline: false,
             find: "foo".into(),
             replace: "bar".into(),
             regex: false,
@@ -268,6 +289,36 @@ mod tests {
         assert_eq!(json["op"], "replace");
         assert_eq!(json["find"], "foo");
         assert_eq!(json["replace"], "bar");
+    }
+
+    #[test]
+    fn multiline_field_defaults_to_false_and_roundtrips() {
+        // Wire format: omitted -> false (back-compat with pre-multiline requests).
+        let op: Op =
+            serde_json::from_str(r#"{"op": "replace", "find": "a", "replace": "b"}"#).unwrap();
+        assert!(!op.is_multiline());
+
+        let op: Op = serde_json::from_str(
+            r#"{"op": "replace", "find": "a", "replace": "b", "multiline": true}"#,
+        )
+        .unwrap();
+        assert!(op.is_multiline());
+
+        let op: Op =
+            serde_json::from_str(r#"{"op": "delete", "find": "a", "multiline": true}"#).unwrap();
+        assert!(op.is_multiline());
+    }
+
+    #[test]
+    fn is_multiline_false_for_line_scoped_ops() {
+        // Line-scoped ops can't express multiline at the type level.
+        let op = Op::InsertAfter {
+            find: "a".into(),
+            content: "b".into(),
+            regex: false,
+            case_insensitive: false,
+        };
+        assert!(!op.is_multiline());
     }
 
     #[test]

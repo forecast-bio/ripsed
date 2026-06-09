@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Multiline match mode in the engine (#91): `Op::Replace` and
+  `Op::Delete` gain a `multiline` field (serde default `false`). When
+  set, the pattern matches against the whole buffer instead of
+  line-by-line, so finds can span line boundaries (like ripgrep's
+  `-U`). Delete removes the matched span rather than whole lines.
+  Buffer mode splices replacements into the original text, so line
+  endings outside the match are untouched byte-for-byte and `Change`
+  metadata always equals the written bytes. Line ranges are rejected
+  in multiline mode (`invalid_request`). Breaking for library users:
+  constructing `Op::Replace`/`Op::Delete` literals now requires the
+  `multiline` field; the JSON wire format is unaffected (field is
+  optional, defaults to `false`). CLI/JSON surface lands
+  separately (#92).
+
 ### Fixed
 - Fix `Change.after` metadata for InsertAfter/InsertBefore hardcoding
   LF between the matched line and the inserted content. On CRLF files

@@ -219,6 +219,7 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
         "replace" => {
             require_positional_count(&positional, 2, "replace", line_num)?;
             Op::Replace {
+                multiline: false,
                 find: positional[0].clone(),
                 replace: positional[1].clone(),
                 regex,
@@ -228,6 +229,7 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
         "delete" => {
             require_positional_count(&positional, 1, "delete", line_num)?;
             Op::Delete {
+                multiline: false,
                 find: positional[0].clone(),
                 regex,
                 case_insensitive,
@@ -482,6 +484,7 @@ mod tests {
         assert_eq!(
             *op,
             Op::Replace {
+                multiline: false,
                 find: "old".to_string(),
                 replace: "new".to_string(),
                 regex: false,
@@ -498,6 +501,7 @@ mod tests {
         assert_eq!(
             *op,
             Op::Replace {
+                multiline: false,
                 find: r"fn\s+old_(\w+)".to_string(),
                 replace: "fn new_$1".to_string(),
                 regex: true,
@@ -530,6 +534,7 @@ mod tests {
         assert_eq!(
             script.operations[0].op,
             Op::Delete {
+                multiline: false,
                 find: "console.log".to_string(),
                 regex: false,
                 case_insensitive: false,

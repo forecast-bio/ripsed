@@ -15,6 +15,7 @@
 //!     replace: "bar".into(),
 //!     regex: false,
 //!     case_insensitive: false,
+//!     multiline: false,
 //! };
 //!
 //! let result = apply_to_file(

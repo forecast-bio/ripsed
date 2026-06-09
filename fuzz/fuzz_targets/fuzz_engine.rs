@@ -11,15 +11,18 @@ struct EngineInput {
     text: String,
     find: String,
     replace: String,
+    multiline: bool,
 }
 
 fuzz_target!(|input: EngineInput| {
-    // Build an Op::Replace from the fuzzed fields.
+    // Build an Op::Replace from the fuzzed fields. `multiline` exercises
+    // the whole-buffer span path as well as the per-line path.
     let op = Op::Replace {
         find: input.find,
         replace: input.replace,
         regex: false,
         case_insensitive: false,
+        multiline: input.multiline,
     };
 
     // Build a matcher; if this fails (shouldn't for literal mode), just return.

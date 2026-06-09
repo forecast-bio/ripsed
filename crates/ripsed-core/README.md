@@ -24,6 +24,7 @@ let op = Op::Replace {
     replace: "new".to_string(),
     regex: false,
     case_insensitive: false,
+    multiline: false,
 };
 
 let matcher = Matcher::new(&op).unwrap();

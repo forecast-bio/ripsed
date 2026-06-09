@@ -18,6 +18,7 @@ fuzz_target!(|data: &[u8]| {
         replace: String::new(),
         regex: true,
         case_insensitive: false,
+        multiline: false,
     };
 
     // This must never panic. It either succeeds or returns an Err with
