@@ -1,0 +1,10 @@
+{
+  "uuid": "3844759b-e7bd-4df3-8fa3-7c72208ec62d",
+  "issue_uuid": "c94e6355-c5d7-4d3f-b071-74956dafaf67",
+  "author": "w3Lb",
+  "content": "Delivered in commit de5052f. Matcher::prescreen: literal contains; regex via (?m)-prefixed shadow compiled once at construction — plain buffer is_match would false-skip anchored patterns like ^foo (caught in design, regression-tested). No shadow (= always maybe) for \\A/\\z and (?- flag-negation; \\Z needs no guard since the regex crate rejects it at compile time (discovered via failing test). Soundness proptest: prescreen-reject implies no line matches. engine::apply early-returns unchanged; prescreen runs after range validation so bad range regexes still error. MEASURED: no_match 10k-line buffer 2.8ms -> 9.9us (~280x); recorded in CHANGELOG + bench no_match_prescreen group committed for #99's harness to reuse. 6 unit tests + 1 proptest. 23 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T21:38:06.622298160Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAYO6CUA7D7EVMmpeNQJxASYrkyVS6G6JZyoU1B4xixsbymoUBEo4aAt9taGs3A4xRl+vTQYh7h8AUAjMu7XUgDw=="
+}
