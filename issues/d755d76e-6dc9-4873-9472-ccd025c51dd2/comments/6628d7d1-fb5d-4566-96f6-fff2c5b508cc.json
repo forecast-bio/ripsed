@@ -1,0 +1,10 @@
+{
+  "uuid": "6628d7d1-fb5d-4566-96f6-fff2c5b508cc",
+  "issue_uuid": "d755d76e-6dc9-4873-9472-ccd025c51dd2",
+  "author": "w3Lb",
+  "content": "Delivered in commit 4e39111. SourceEncoding {Utf8, Utf8Bom, Utf16Le, Utf16Be} in new ripsed-fs encoding module — std-only (encoding_rs can't ENCODE UTF-16; String::from_utf16 + str::encode_utf16 cover both directions). Linchpin: is_binary() exempts UTF-16 BOMs — UTF-16 files were previously misclassified as binary (NUL bytes) and never discovered at all. read_file_with_encoding -> write_atomic_encoded / stage_encoded carry encoding read-to-write across file/script/json modes (json content cache now (String, SourceEncoding)) and the facade. UTF-8 BOM stripped before matching (line-1 anchors work), re-attached on write. UndoRecord.encoding optional tag (absent=UTF-8, old logs parse unchanged) makes undo byte-exact for UTF-16. Truncated UTF-16/unpaired surrogates -> clean per-file InvalidData, other files proceed. 17 new tests. 23 suites green, clippy/fmt clean. Non-goals held: no charset guessing, no BOM-less UTF-16.",
+  "created_at": "2026-06-09T21:19:58.568696921Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAYWxKCJ+0CNTJuL87IlFDbhiSitE9p+xhjZjZKOg8HXT9EaYD7htojaSjmTLQeVRRQuZyKuhByqtnPC52LMQfDQ=="
+}
