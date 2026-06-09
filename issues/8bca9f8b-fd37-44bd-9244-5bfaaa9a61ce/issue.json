@@ -2,11 +2,12 @@
   "uuid": "8bca9f8b-fd37-44bd-9244-5bfaaa9a61ce",
   "display_id": 91,
   "title": "Add multiline match mode to engine: Replace/Delete across line boundaries",
-  "status": "open",
+  "status": "closed",
   "priority": "high",
   "created_by": "w3Lb",
   "created_at": "2026-06-09T20:20:07.398514438Z",
-  "updated_at": "2026-06-09T20:20:09.186342505Z",
+  "updated_at": "2026-06-09T20:38:36.630961675Z",
+  "closed_at": "2026-06-09T20:38:36.630961675Z",
   "labels": [
     "feature"
   ]
