@@ -2,11 +2,12 @@
   "uuid": "94eab057-2cd7-4fbf-841e-e3dc0aa99b5c",
   "display_id": 85,
   "title": "Fix Windows build: missing windows-sys features for FileSystem/IO",
-  "status": "open",
+  "status": "closed",
   "priority": "high",
   "created_by": "l6vc",
   "created_at": "2026-04-17T00:28:45.151936444Z",
-  "updated_at": "2026-04-17T00:28:49.268234307Z",
+  "updated_at": "2026-06-09T19:40:02.652934443Z",
+  "closed_at": "2026-06-09T19:40:02.652934443Z",
   "labels": [
     "bug"
   ]
