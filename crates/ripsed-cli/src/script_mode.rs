@@ -1,18 +1,51 @@
 use ripsed_core::config::Config;
-use ripsed_core::engine;
 use ripsed_core::matcher::Matcher;
+use ripsed_core::operation::{Op, OpOptions};
 use ripsed_core::script::{Script, parse_script};
 use ripsed_fs::discovery::{WalkStrategy, discover_files_auto};
-use ripsed_fs::lock::FileLock;
-use ripsed_fs::reader;
-use ripsed_fs::writer;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use crate::args::Cli;
+use crate::file_mode::{FileOutcome, process_one_file};
 use crate::human;
 use crate::shared::{build_op_options, load_undo_log, record_undo, save_undo_log};
+
+/// One operation's pass over its files, fanned out across workers.
+/// Outcomes come back in discovery order.
+fn process_script_pass(
+    files: &[PathBuf],
+    op: &Op,
+    matcher: &Matcher,
+    options: &OpOptions,
+    cli: &Cli,
+    already_backed_up: &HashSet<PathBuf>,
+) -> Vec<FileOutcome> {
+    use rayon::prelude::*;
+
+    let work = || {
+        files
+            .par_iter()
+            .map(|path| {
+                // Back up only before a file's first modification in the
+                // script, so the .bak reflects the pre-script content.
+                let skip_backup = already_backed_up.contains(path);
+                process_one_file(path, op, matcher, options, cli.dry_run, skip_backup)
+            })
+            .collect::<Vec<_>>()
+    };
+
+    match cli.threads {
+        Some(n) => match rayon::ThreadPoolBuilder::new().num_threads(n).build() {
+            Ok(pool) => pool.install(work),
+            Err(e) => {
+                eprintln!("ripsed: warning: cannot build {n}-thread pool ({e}); using default");
+                work()
+            }
+        },
+        None => work(),
+    }
+}
 
 /// Run ripsed in script mode: read a .rip file and execute each operation.
 pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<(), i32> {
@@ -40,9 +73,6 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
     let mut total_changes = 0usize;
     let mut files_modified_set: HashSet<PathBuf> = HashSet::new();
 
-    // Advisory locks held from first read of each file through final write.
-    let mut file_locks: HashMap<PathBuf, FileLock> = HashMap::new();
-
     // Load undo log for recording changes (only when not dry-run)
     let mut undo_log = if !cli.dry_run {
         Some(load_undo_log(config))
@@ -50,6 +80,9 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
         None
     };
 
+    // Operations run in script order (each sees the previous one's output
+    // on disk); within one operation, files fan out across workers. The
+    // per-file advisory lock is scoped to each (operation, file) pass.
     for script_op in &script.operations {
         let op = &script_op.op;
 
@@ -79,74 +112,27 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
             continue;
         }
 
-        for file_path in &files {
-            // Acquire advisory lock on first access to this file.
-            // Skipped in dry-run mode (read-only, no lock files needed).
-            if !cli.dry_run && !file_locks.contains_key(file_path) {
-                match FileLock::try_lock_with_timeout(file_path, Duration::from_secs(5)) {
-                    Ok(lock) => {
-                        file_locks.insert(file_path.clone(), lock);
-                    }
-                    Err(e) => {
-                        eprintln!("ripsed: {}: {e}", file_path.display());
-                        continue;
-                    }
-                }
+        let outcomes =
+            process_script_pass(&files, op, &matcher, &options, cli, &files_modified_set);
+
+        for outcome in outcomes {
+            for err in &outcome.errors {
+                eprintln!("{err}");
             }
-
-            let (content, encoding) = match reader::read_file_with_encoding(file_path) {
-                Ok(c) => c,
-                Err(e) => {
-                    eprintln!("ripsed: {}: {e}", file_path.display());
-                    continue;
-                }
-            };
-
-            let output = match engine::apply(&content, op, &matcher, options.range_spec(), 3) {
-                Ok(o) => o,
-                Err(e) => {
-                    eprintln!("ripsed: {}: {e}", file_path.display());
-                    continue;
-                }
-            };
-
-            if output.changes.is_empty() {
+            if outcome.changes.is_empty() {
                 continue;
             }
-
-            total_changes += output.changes.len();
-
-            if cli.count {
-                // Just count, don't print diffs
-            } else if !cli.quiet {
-                human::print_file_diff(file_path, &output.changes);
+            total_changes += outcome.changes.len();
+            if !cli.count && !cli.quiet {
+                human::print_file_diff(&outcome.path, &outcome.changes);
             }
-
-            if !cli.dry_run {
-                if options.backup
-                    && !files_modified_set.contains(file_path)
-                    && let Err(e) = writer::create_backup(file_path)
-                {
-                    eprintln!("ripsed: backup failed for {}: {e}", file_path.display());
-                    continue;
-                }
-                if let Some(ref text) = output.text {
-                    // Record undo entry before writing
-                    if let Some(ref mut log) = undo_log
-                        && let Some(ref undo_entry) = output.undo
-                    {
-                        record_undo(log, file_path, undo_entry, encoding);
-                    }
-
-                    match writer::write_atomic_encoded(file_path, text, encoding) {
-                        Ok(()) => {
-                            files_modified_set.insert(file_path.clone());
-                        }
-                        Err(e) => {
-                            eprintln!("ripsed: write failed for {}: {e}", file_path.display());
-                        }
-                    }
-                }
+            if let Some(ref mut log) = undo_log
+                && let Some((ref entry, encoding)) = outcome.undo
+            {
+                record_undo(log, &outcome.path, entry, encoding);
+            }
+            if outcome.modified {
+                files_modified_set.insert(outcome.path.clone());
             }
         }
     }

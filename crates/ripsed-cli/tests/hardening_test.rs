@@ -625,6 +625,141 @@ fn pipe_mode_closed_downstream_exits_cleanly() {
     );
 }
 
+// ── Parallel file application ──
+
+/// Build a tree of N files with distinct content plus some non-matching ones.
+fn parallel_fixture(n: usize) -> tempfile::TempDir {
+    let files: Vec<(String, String)> = (0..n)
+        .map(|i| {
+            (
+                format!("f{i:03}.txt"),
+                format!("needle {i}\nplain line\nneedle again {i}\n"),
+            )
+        })
+        .chain((0..5).map(|i| (format!("skip{i}.txt"), "nothing here\n".to_string())))
+        .collect();
+    let refs: Vec<(&str, &str)> = files
+        .iter()
+        .map(|(a, b)| (a.as_str(), b.as_str()))
+        .collect();
+    setup_files(&refs)
+}
+
+/// Strip the run's temp-dir prefix so stdout from different runs compares.
+fn normalize_paths(stdout: &str, dir: &std::path::Path) -> String {
+    stdout.replace(&dir.display().to_string(), "<root>")
+}
+
+#[test]
+fn parallel_and_single_thread_runs_are_equivalent() {
+    let run = |threads: &str| {
+        let dir = parallel_fixture(32);
+        let output = assert_cmd::cargo_bin_cmd!("ripsed")
+            .args(["--threads", threads, "needle", "thread"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let mut contents: Vec<(String, String)> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| {
+                let p = e.unwrap().path();
+                p.is_file().then(|| {
+                    (
+                        p.file_name().unwrap().to_string_lossy().into_owned(),
+                        fs::read_to_string(&p).unwrap_or_default(),
+                    )
+                })
+            })
+            .filter(|(name, _)| name.ends_with(".txt"))
+            .collect();
+        contents.sort();
+        let stdout = normalize_paths(&String::from_utf8(output.stdout).unwrap(), dir.path());
+        (stdout, contents)
+    };
+
+    let (stdout_1, files_1) = run("1");
+    let (stdout_8, files_8) = run("8");
+    assert_eq!(
+        files_1, files_8,
+        "file bytes must not depend on thread count"
+    );
+    assert_eq!(
+        stdout_1, stdout_8,
+        "output ordering must be deterministic across thread counts"
+    );
+}
+
+#[test]
+fn parallel_run_output_is_deterministic_across_runs() {
+    let run = || {
+        let dir = parallel_fixture(24);
+        let output = assert_cmd::cargo_bin_cmd!("ripsed")
+            .args(["--dry-run", "needle", "thread"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        normalize_paths(&String::from_utf8(output.stdout).unwrap(), dir.path())
+    };
+    assert_eq!(run(), run(), "same input must print identically every run");
+}
+
+#[test]
+fn undo_restores_everything_after_parallel_run() {
+    let dir = parallel_fixture(16);
+    let before: Vec<String> = (0..16)
+        .map(|i| fs::read_to_string(dir.path().join(format!("f{i:03}.txt"))).unwrap())
+        .collect();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["needle", "thread"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    // One undo entry per modified file; undo them all.
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--undo", "16"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    for (i, original) in before.iter().enumerate() {
+        let now = fs::read_to_string(dir.path().join(format!("f{i:03}.txt"))).unwrap();
+        assert_eq!(&now, original, "f{i:03}.txt must be restored");
+    }
+}
+
+#[test]
+fn threads_zero_is_rejected() {
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--threads", "0", "a", "b"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("at least 1"));
+}
+
+#[test]
+fn script_mode_parallel_pass_is_correct() {
+    let dir = parallel_fixture(16);
+    let script = "replace \"needle\" \"thread\" --glob \"*.txt\"\nreplace \"plain\" \"fancy\" --glob \"*.txt\"\n";
+    fs::write(dir.path().join("ops.rip"), script).unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--threads", "8", "--script", "ops.rip"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    for i in 0..16 {
+        let content = fs::read_to_string(dir.path().join(format!("f{i:03}.txt"))).unwrap();
+        assert_eq!(
+            content,
+            format!("thread {i}\nfancy line\nthread again {i}\n")
+        );
+    }
+}
+
 #[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);

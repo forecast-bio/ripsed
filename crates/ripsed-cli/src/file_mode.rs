@@ -1,11 +1,13 @@
 use ripsed_core::config::Config;
 use ripsed_core::engine;
 use ripsed_core::matcher::Matcher;
-use ripsed_core::operation::{Op, ReplaceCount};
+use ripsed_core::operation::{Op, OpOptions, ReplaceCount};
 use ripsed_fs::discovery::{WalkStrategy, discover_files_auto};
+use ripsed_fs::encoding::SourceEncoding;
 use ripsed_fs::lock::FileLock;
 use ripsed_fs::reader;
 use ripsed_fs::writer;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::args::Cli;
@@ -101,6 +103,46 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
     } else {
         None
     };
+
+    // --confirm prompts interactively between apply and write, which is
+    // inherently sequential; everything else fans out across worker
+    // threads, one file per worker (per-file locks make this safe).
+    if !cli.confirm && files.len() > 1 {
+        let outcomes = process_files_parallel(&files, &op, &matcher, &options, cli);
+
+        // Outcomes are in discovery order regardless of which worker
+        // finished first, so output stays deterministic.
+        for outcome in outcomes {
+            for err in &outcome.errors {
+                eprintln!("{err}");
+            }
+            if outcome.changes.is_empty() {
+                continue;
+            }
+            total_changes += outcome.changes.len();
+            if !cli.count && !cli.quiet {
+                human::print_file_diff(&outcome.path, &outcome.changes);
+            }
+            if outcome.modified {
+                files_modified += 1;
+            }
+            if let Some(ref mut log) = undo_log
+                && let Some((ref entry, encoding)) = outcome.undo
+            {
+                record_undo(log, &outcome.path, entry, encoding);
+            }
+        }
+
+        if let Some(ref log) = undo_log {
+            save_undo_log(log);
+        }
+        if cli.count {
+            println!("{total_changes}");
+        } else if !cli.quiet {
+            human::print_summary(files_modified, total_changes, cli.dry_run);
+        }
+        return if total_changes == 0 { Err(1) } else { Ok(()) };
+    }
 
     let mut apply_all = false;
 
@@ -204,6 +246,138 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
     }
 
     if total_changes == 0 { Err(1) } else { Ok(()) }
+}
+
+/// Everything one worker produced for one file, returned to the main
+/// thread so printing, undo recording, and counting stay ordered and
+/// single-threaded.
+pub(crate) struct FileOutcome {
+    pub(crate) path: PathBuf,
+    pub(crate) changes: Vec<ripsed_core::diff::Change>,
+    pub(crate) undo: Option<(ripsed_core::undo::UndoEntry, SourceEncoding)>,
+    pub(crate) modified: bool,
+    pub(crate) errors: Vec<String>,
+}
+
+/// Process one file end to end: lock, read, apply, backup, write.
+/// Never touches stdout/stderr — diagnostics come back in `errors`.
+pub(crate) fn process_one_file(
+    file_path: &Path,
+    op: &Op,
+    matcher: &Matcher,
+    options: &OpOptions,
+    dry_run: bool,
+    skip_backup: bool,
+) -> FileOutcome {
+    let mut outcome = FileOutcome {
+        path: file_path.to_path_buf(),
+        changes: Vec::new(),
+        undo: None,
+        modified: false,
+        errors: Vec::new(),
+    };
+
+    // Acquire advisory lock before reading — holds through backup + write.
+    // Skipped in dry-run mode (read-only, no lock files needed).
+    let _lock = if !dry_run {
+        match FileLock::try_lock_with_timeout(file_path, Duration::from_secs(5)) {
+            Ok(l) => Some(l),
+            Err(e) => {
+                outcome
+                    .errors
+                    .push(format!("ripsed: {}: {e}", file_path.display()));
+                return outcome;
+            }
+        }
+    } else {
+        None
+    };
+
+    let (content, encoding) = match reader::read_file_with_encoding(file_path) {
+        Ok(c) => c,
+        Err(e) => {
+            outcome
+                .errors
+                .push(format!("ripsed: {}: {e}", file_path.display()));
+            return outcome;
+        }
+    };
+
+    let output = match engine::apply(&content, op, matcher, options.range_spec(), 3) {
+        Ok(o) => o,
+        Err(e) => {
+            outcome
+                .errors
+                .push(format!("ripsed: {}: {e}", file_path.display()));
+            return outcome;
+        }
+    };
+
+    if output.changes.is_empty() {
+        return outcome;
+    }
+    outcome.changes = output.changes;
+
+    if !dry_run {
+        if options.backup
+            && !skip_backup
+            && let Err(e) = writer::create_backup(file_path)
+        {
+            outcome.errors.push(format!(
+                "ripsed: backup failed for {}: {e}",
+                file_path.display()
+            ));
+            return outcome;
+        }
+        if let Some(ref text) = output.text {
+            if let Some(undo_entry) = output.undo {
+                outcome.undo = Some((undo_entry, encoding));
+            }
+            match writer::write_atomic_encoded(file_path, text, encoding) {
+                Ok(()) => outcome.modified = true,
+                Err(e) => {
+                    // The write never landed, so there is nothing to undo.
+                    outcome.undo = None;
+                    outcome.errors.push(format!(
+                        "ripsed: write failed for {}: {e}",
+                        file_path.display()
+                    ));
+                }
+            }
+        }
+    }
+
+    outcome
+}
+
+/// Fan files out across a rayon pool, one worker per file, returning
+/// outcomes in the input (discovery) order.
+pub(crate) fn process_files_parallel(
+    files: &[PathBuf],
+    op: &Op,
+    matcher: &Matcher,
+    options: &OpOptions,
+    cli: &Cli,
+) -> Vec<FileOutcome> {
+    use rayon::prelude::*;
+
+    let work = || {
+        files
+            .par_iter()
+            .map(|path| process_one_file(path, op, matcher, options, cli.dry_run, false))
+            .collect::<Vec<_>>()
+    };
+
+    match cli.threads {
+        Some(n) => match rayon::ThreadPoolBuilder::new().num_threads(n).build() {
+            Ok(pool) => pool.install(work),
+            Err(e) => {
+                eprintln!("ripsed: warning: cannot build {n}-thread pool ({e}); using default");
+                work()
+            }
+        },
+        None => work(),
+    }
 }
 
 pub fn build_op_from_cli(cli: &Cli, find: &str) -> Op {

@@ -187,6 +187,10 @@ pub struct Cli {
     /// Run operations from a .rip script file
     #[arg(long)]
     pub script: Option<String>,
+
+    /// Number of worker threads for file processing (default: all cores)
+    #[arg(long, value_name = "N", value_parser = parse_threads)]
+    pub threads: Option<usize>,
 }
 
 fn parse_transform_mode(s: &str) -> Result<TransformMode, String> {
@@ -216,6 +220,15 @@ fn parse_pattern_range(s: &str) -> Result<PatternRange, String> {
         start_pattern: start.to_string(),
         end_pattern: end.to_string(),
     })
+}
+
+/// Parse --threads: a positive worker count.
+fn parse_threads(s: &str) -> Result<usize, String> {
+    match s.parse::<usize>() {
+        Ok(0) => Err("thread count must be at least 1".to_string()),
+        Ok(n) => Ok(n),
+        Err(_) => Err(format!("'{s}' is not a valid number")),
+    }
 }
 
 /// Parse --max-replacements: a positive occurrence cap.

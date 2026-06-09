@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Parallel file application (#97): file mode and script mode fan files
+  out across a rayon worker pool (one file per worker; the existing
+  per-file advisory locks make this safe), with `--threads N` to
+  control the pool size (default: all cores). Output ordering, undo
+  recording, and exit codes are identical to a single-threaded run —
+  outcomes are collected in discovery order and printed from the main
+  thread. `--confirm` remains sequential (it prompts interactively).
+  In script mode the per-file lock is now scoped to each
+  (operation, file) pass rather than held across all operations.
 - Streaming pipe mode (#96): piped input is now processed line by line
   in constant memory instead of buffering all of stdin, so arbitrarily
   large (or infinite) streams work like sed in a pipeline. Each line
