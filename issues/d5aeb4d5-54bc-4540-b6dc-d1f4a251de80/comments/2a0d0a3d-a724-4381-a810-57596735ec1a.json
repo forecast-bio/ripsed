@@ -1,0 +1,10 @@
+{
+  "uuid": "2a0d0a3d-a724-4381-a810-57596735ec1a",
+  "issue_uuid": "d5aeb4d5-54bc-4540-b6dc-d1f4a251de80",
+  "author": "w3Lb",
+  "content": "Delivered in commit e90ac07 (amended to include Cargo.lock for the new ripsed-cli regex dep). RangeSpec{Lines|Patterns}+PatternRange in IR; engine RangeFilter implements sed /start/,/end/ semantics (end never tested on the opening line so /a/,/a/ spans to next match; boundaries inclusive; multiple regions; unclosed->EOF; invalid range regex -> invalid_regex). engine::apply signature now Option<RangeSpec> — call-site migration partly dogfooded via ripsed. CLI --range with parse-time regex validation, conflicts -n/-U; JSON options.range mutually exclusive with line_range, validated up front; works in file/pipe/script/json modes via OpOptions::range_spec(). Facade ApplyOptions.line_range -> range (breaking, changelogged). 19 new tests; one initial test expectation was wrong about close-boundary semantics and the code was right — fixed the test, kept sed behavior. 23 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T21:07:39.121004769Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAQ1MlKRltDVKTPZFU9idWOL/832PB4qe21jl5XpcbQ6+m70pmVzB5Px0kRRimV8cxbRQJlZVMSIjm1jSDJQbFDQ=="
+}
