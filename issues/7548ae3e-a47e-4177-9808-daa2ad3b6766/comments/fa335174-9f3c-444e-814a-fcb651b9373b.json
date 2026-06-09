@@ -1,0 +1,10 @@
+{
+  "uuid": "fa335174-9f3c-444e-814a-fcb651b9373b",
+  "issue_uuid": "7548ae3e-a47e-4177-9808-daa2ad3b6766",
+  "author": "w3Lb",
+  "content": "WHY: rg generates bash/zsh/fish/powershell completions + a man page at build time; ripsed has neither (no clap_complete in the workspace). SCOPE: add clap_complete + clap_mangen as xtask deps (NOT runtime deps of ripsed-cli); xtask gen-completions writes all four shells + man page to a dist/ dir from the existing Cli derive (needs Cli to expose its Command — add a doc-hidden fn or move the derive struct to a shared location xtask can reach; simplest: ripsed-cli exposes pub fn command() behind a feature gate or xtask depends on ripsed-cli as a lib). Release workflow: run the generator and include completions/ + ripsed.1 in each artifact tarball (rg ships them this way). Also wire a CI check that generation succeeds so the derive never drifts. TESTS: xtask invocation smoke test; artifact packaging step lists the files.",
+  "created_at": "2026-06-09T20:24:07.119544321Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAVYqC3gaF+If5YyiqBWXRMdnbb38lPnDjWZRZnge/V4KrOErKqviJ2RCQT6/J1W3JPLKUH3gMzz3/Al95L6emBw=="
+}
