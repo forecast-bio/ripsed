@@ -1,0 +1,10 @@
+{
+  "uuid": "c91b30f7-6fa3-4f42-8a95-dab061b9cc56",
+  "display_id": 92,
+  "title": "Expose multiline mode in CLI (-U/--multiline) and JSON (multiline: true)",
+  "status": "open",
+  "priority": "high",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:20:11.065772602Z",
+  "updated_at": "2026-06-09T20:20:11.065772602Z"
+}
