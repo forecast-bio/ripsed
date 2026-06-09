@@ -1,0 +1,10 @@
+{
+  "uuid": "3f87bb7f-6340-4701-af86-b608d6f9772d",
+  "issue_uuid": "cf077e01-75e1-4a1a-86d3-00dec2207225",
+  "author": "w3Lb",
+  "content": "WHY: 4 good libfuzzer targets (fuzz_regex_input, fuzz_engine, fuzz_json_request, fuzz_autodetect) exist but never run — found in the June 9 review; fuzzers that don't run rot. Coverage: no lcov/tarpaulin anywhere, so test-suite gaps are invisible. SCOPE: (1) CI fuzz smoke job: nightly toolchain + cargo-fuzz, run each target for ~60s with -max_total_time on PRs touching ripsed-core/ripsed-json (path filter), full 10-min run on a weekly cron; corpus committed under fuzz/corpus/ and grown from CI artifacts; crash artifacts uploaded on failure. (2) Coverage: cargo-llvm-cov in a CI job, lcov upload to Codecov (or just artifact + README badge if no external service wanted — decide with repo owner), threshold informational not blocking at first. TESTS: n/a — this IS test infra; acceptance = green jobs on a PR.",
+  "created_at": "2026-06-09T20:24:20.887344777Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAVJ52b1Jhm2qo7svw/m8YfNQyfLguTT9AHkSIZaNkJdWDYBz2cpQktDLfDU8551Cu95P1F2LMs1kEEielpHXcAg=="
+}
