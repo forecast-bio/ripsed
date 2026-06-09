@@ -346,6 +346,7 @@ at your option.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for
+the dev setup, workspace map, and PR checklist.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this project by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

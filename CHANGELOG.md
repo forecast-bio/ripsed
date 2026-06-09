@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero matched files (the response body is unchanged).
 
 ### Added
+- Community scaffolding (#105): CONTRIBUTING.md (dev setup, workspace
+  map, PR checklist, the fuzz-workspace footgun), GitHub issue
+  templates for bugs and feature requests, and a PR template.
 - Documentation (#104): task-oriented GUIDE.md (bulk renames, regex
   captures, multiline refactors, replacement counts, pattern regions,
   .rip scripts, agent JSON integration, pipelines, undo/safety), a
