@@ -1,0 +1,10 @@
+{
+  "uuid": "a745414b-aeb3-4e80-aef4-267b4c276fdc",
+  "issue_uuid": "8ed4b60f-e5c4-4f3c-a504-e96255a987f3",
+  "author": "w3Lb",
+  "content": "Plan: hoist the line_sep computation (engine.rs:326) above the per-line loop, add line_sep: &'a str to LineCtx, and use cx.line_sep instead of the hardcoded \\n in apply_insert_after (engine.rs:113) and apply_insert_before (engine.rs:130) when composing Change.after metadata. Add two regression tests asserting that for a CRLF file the Change.after string for InsertAfter/InsertBefore contains \\r\\n and matches the joined output bytes. Verify with full workspace test + clippy + fmt.",
+  "created_at": "2026-06-09T20:00:24.574341366Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABALn0yBgqYzUYqqsWhoZvs9U5QRv/PdVlFoqt7C3d0zCN+gYWPfq8Z452sPYizXC2B/rex+rmgYU3Scsqzo3V+Bw=="
+}
