@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero matched files (the response body is unchanged).
 
 ### Added
+- Distribution packaging (#102): crates.io metadata (keywords,
+  categories, homepage) on all five crates and a real description for
+  `ripsed-cli`; `cargo install ripsed-cli` documented as the primary
+  install path in the README; Debian packages built in the release
+  workflow via `cargo deb` (binary + man page + completions);
+  Homebrew formula, Scoop manifest, and AUR PKGBUILD templates under
+  `packaging/` with per-release update instructions.
 - Shell completions and man page (#101): `cargo xtask gen-completions`
   generates bash/zsh/fish/powershell completions and `ripsed.1` from
   the real clap definition (so they can never drift from the actual

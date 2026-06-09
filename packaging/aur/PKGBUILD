@@ -1,0 +1,25 @@
+# AUR PKGBUILD template — binary package from GitHub releases.
+# Per release: bump pkgver, update sha256sums, regenerate .SRCINFO
+# (makepkg --printsrcinfo > .SRCINFO).
+# Maintainer: ripsed contributors
+pkgname=ripsed
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc="Fast, modern stream editor — like ripgrep is to grep, ripsed is to sed"
+arch=('x86_64' 'aarch64')
+url="https://github.com/dollspace-gay/ripsed"
+license=('MIT OR Apache-2.0')
+source_x86_64=("$url/releases/download/v$pkgver/ripsed-v$pkgver-x86_64-unknown-linux-gnu.tar.gz")
+source_aarch64=("$url/releases/download/v$pkgver/ripsed-v$pkgver-aarch64-unknown-linux-gnu.tar.gz")
+sha256sums_x86_64=('@SHA256_LINUX_X64@')
+sha256sums_aarch64=('@SHA256_LINUX_ARM@')
+
+package() {
+    cd "ripsed-v$pkgver-$CARCH-unknown-linux-gnu"
+    install -Dm755 ripsed "$pkgdir/usr/bin/ripsed"
+    install -Dm644 ripsed.1 "$pkgdir/usr/share/man/man1/ripsed.1"
+    install -Dm644 completions/ripsed.bash "$pkgdir/usr/share/bash-completion/completions/ripsed"
+    install -Dm644 completions/_ripsed "$pkgdir/usr/share/zsh/site-functions/_ripsed"
+    install -Dm644 completions/ripsed.fish "$pkgdir/usr/share/fish/vendor_completions.d/ripsed.fish"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/ripsed/README.md"
+}

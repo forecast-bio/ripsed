@@ -19,13 +19,27 @@ Designed for humans **and** machines — with first-class JSON support for AI co
 
 ## Installation
 
+### From crates.io
+
+```bash
+cargo install ripsed-cli   # installs the `ripsed` binary
+```
+
+### Prebuilt binaries
+
+Every [GitHub release](https://github.com/dollspace-gay/ripsed/releases)
+ships binaries for Linux (x86_64, aarch64, plus a `.deb`), macOS
+(x86_64, aarch64), and Windows (x86_64), each with shell completions, a
+man page, and SHA256 checksums. Homebrew/Scoop/AUR templates live in
+[`packaging/`](packaging/).
+
 ### From source
 
 ```bash
 cargo install --path crates/ripsed-cli
 ```
 
-Requires Rust 1.85+.
+Requires Rust 1.93+.
 
 ## Quick Start
 

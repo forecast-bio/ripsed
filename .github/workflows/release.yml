@@ -98,9 +98,41 @@ jobs:
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256
 
+  deb:
+    name: Debian package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: deb
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb --locked
+
+      - name: Build release binary
+        run: cargo build --release -p ripsed-cli
+
+      - name: Generate completions and man page
+        run: cargo run -p xtask -- gen-completions
+
+      - name: Build .deb
+        run: cargo deb -p ripsed-cli --no-build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-deb
+          path: target/debian/*.deb
+
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build, deb]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,11 +1,14 @@
 [package]
 name = "ripsed-cli"
-description = "CLI binary for ripsed"
+description = "A fast, modern stream editor — like ripgrep is to grep, ripsed is to sed"
 readme = "../../README.md"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
 rust-version.workspace = true
 
 [[bin]]
@@ -29,3 +32,23 @@ assert_cmd = { workspace = true }
 predicates = { workspace = true }
 tempfile = { workspace = true }
 serde_json = { workspace = true }
+
+# `cargo deb -p ripsed-cli` (run `cargo xtask gen-completions` first —
+# the assets below come from dist/). Used by the release workflow.
+[package.metadata.deb]
+name = "ripsed"
+maintainer = "ripsed contributors"
+extended-description = """\
+A fast, modern stream editor. Recursive and gitignore-aware by default, \
+with atomic writes, an undo log, multiline matching, and a structured \
+JSON interface for AI coding agents."""
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/ripsed", "usr/bin/", "755"],
+    ["../../README.md", "usr/share/doc/ripsed/README.md", "644"],
+    ["../../dist/ripsed.1", "usr/share/man/man1/ripsed.1", "644"],
+    ["../../dist/completions/ripsed.bash", "usr/share/bash-completion/completions/ripsed", "644"],
+    ["../../dist/completions/_ripsed", "usr/share/zsh/vendor-completions/_ripsed", "644"],
+    ["../../dist/completions/ripsed.fish", "usr/share/fish/vendor_completions.d/ripsed.fish", "644"],
+]

@@ -1,0 +1,21 @@
+{
+    "version": "@VERSION@",
+    "description": "Fast, modern stream editor — like ripgrep is to grep, ripsed is to sed",
+    "homepage": "https://github.com/dollspace-gay/ripsed",
+    "license": "MIT OR Apache-2.0",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/dollspace-gay/ripsed/releases/download/v@VERSION@/ripsed-v@VERSION@-x86_64-pc-windows-msvc.zip",
+            "hash": "@SHA256_WINDOWS_X64@"
+        }
+    },
+    "bin": "ripsed.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/dollspace-gay/ripsed/releases/download/v$version/ripsed-v$version-x86_64-pc-windows-msvc.zip"
+            }
+        }
+    }
+}

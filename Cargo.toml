@@ -15,6 +15,9 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["ripsed contributors"]
 repository = "https://github.com/dollspace-gay/ripsed"
+homepage = "https://github.com/dollspace-gay/ripsed"
+keywords = ["sed", "find-and-replace", "regex", "text-processing", "cli"]
+categories = ["command-line-utilities", "text-processing"]
 rust-version = "1.93"
 
 [workspace.dependencies]
