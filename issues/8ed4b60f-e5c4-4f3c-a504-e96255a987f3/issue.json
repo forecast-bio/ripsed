@@ -1,0 +1,10 @@
+{
+  "uuid": "8ed4b60f-e5c4-4f3c-a504-e96255a987f3",
+  "display_id": 89,
+  "title": "Fix Change.after metadata using LF instead of file's CRLF separator for InsertAfter/InsertBefore",
+  "status": "open",
+  "priority": "low",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T19:54:53.516902381Z",
+  "updated_at": "2026-06-09T19:54:53.516902381Z"
+}
