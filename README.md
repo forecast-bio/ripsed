@@ -12,7 +12,9 @@ Designed for humans **and** machines — with first-class JSON support for AI co
 - **No escape hell.** Standard Rust regex syntax. No sed-style delimiters.
 - **Agent-native.** Structured JSON I/O as a first-class interface, not an afterthought.
 - **Safe by default.** Dry-run previews, atomic writes, undo log, backup files.
-- **Fast.** Parallel file discovery, memory-mapped I/O, same philosophy as ripgrep.
+- **Fast.** Parallel discovery *and* application, memory-mapped I/O,
+  whole-buffer fast-reject — same philosophy as ripgrep. Numbers and
+  methodology in [BENCHMARKS.md](BENCHMARKS.md).
 - **Scriptable.** Chain operations in `.rip` script files for multi-step refactors.
 
 ## Installation

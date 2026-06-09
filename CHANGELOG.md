@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comparative benchmark harness (#99): `cargo xtask bench-compare`
+  generates corpora and measures ripsed against GNU sed, sd, and
+  `perl -pi` via hyperfine, with a pristine corpus restored before
+  every timing iteration. Methodology and honest results — including
+  the losses — are published in BENCHMARKS.md: ripsed wins the
+  no-match tree (prescreen), loses the 64 MiB single-file case ~6×
+  (undo-log full-text copy; follow-up filed as #106).
 - Whole-buffer prescreen fast-reject (#98): before the per-line loop,
   the engine checks whether the pattern can match anywhere in the
   buffer (literal `contains`; for regexes a `(?m)`-compiled shadow so

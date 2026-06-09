@@ -7,11 +7,250 @@ fn main() {
         Some("gen-schema") => gen_schema(),
         Some("gen-fixtures") => gen_fixtures(),
         Some("bench") => bench(),
+        Some("bench-compare") => bench_compare(args.iter().any(|a| a == "--quick")),
         _ => {
-            eprintln!("Usage: cargo xtask <gen-schema|gen-fixtures|bench>");
+            eprintln!("Usage: cargo xtask <gen-schema|gen-fixtures|bench|bench-compare [--quick]>");
             std::process::exit(1);
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// bench-compare: reproducible comparison against sed, sd, and perl
+// ---------------------------------------------------------------------------
+
+/// One benchmark scenario: a corpus and the equivalent command per tool.
+struct Scenario {
+    name: &'static str,
+    description: &'static str,
+    /// Shell command per (tool label, command). `$WORK` is the corpus copy.
+    commands: Vec<(String, String)>,
+    /// Hyperfine minimum runs.
+    runs: u32,
+}
+
+/// Generate corpora, run every available tool through hyperfine with a
+/// pristine corpus restored before each timing iteration, and print a
+/// markdown results table (paste into BENCHMARKS.md).
+fn bench_compare(quick: bool) {
+    use std::process::Command;
+
+    // Release binary, built fresh so the numbers reflect HEAD.
+    eprintln!("building ripsed --release...");
+    let status = Command::new("cargo")
+        .args(["build", "--release", "-p", "ripsed-cli"])
+        .status()
+        .expect("cargo build");
+    assert!(status.success(), "release build failed");
+    let ripsed = std::fs::canonicalize("target/release/ripsed").expect("release binary");
+    let ripsed = ripsed.display();
+
+    let have = |tool: &str| {
+        Command::new(tool)
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    };
+    let have_sed = have("sed");
+    let have_sd = have("sd");
+    let have_perl = have("perl");
+    eprintln!("tools: sed={have_sed} sd={have_sd} perl={have_perl} (missing tools are skipped)");
+
+    // ── Corpora ──────────────────────────────────────────────────────
+    let root = std::path::Path::new("target/bench-compare");
+    let _ = std::fs::remove_dir_all(root);
+
+    // Tree corpus: many files, ~10% of lines match.
+    let (n_files, n_lines) = if quick { (200, 100) } else { (1000, 200) };
+    let tree = root.join("tree-pristine");
+    for i in 0..n_files {
+        let dir = tree.join(format!("d{}", i % 20));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut content = String::new();
+        for l in 0..n_lines {
+            if l % 10 == 0 {
+                content.push_str("a needle line that will be edited\n");
+            } else {
+                content.push_str("plain filler content on this line\n");
+            }
+        }
+        std::fs::write(dir.join(format!("f{i}.txt")), content).unwrap();
+    }
+
+    // No-match corpus: same shape, pattern absent (prescreen showcase).
+    let nomatch = root.join("nomatch-pristine");
+    for i in 0..n_files {
+        let dir = nomatch.join(format!("d{}", i % 20));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join(format!("f{i}.txt")),
+            "plain filler content on this line\n".repeat(n_lines),
+        )
+        .unwrap();
+    }
+
+    // Single big file.
+    let big_mb = if quick { 8 } else { 64 };
+    let bigdir = root.join("big-pristine");
+    std::fs::create_dir_all(&bigdir).unwrap();
+    let line = "a needle line that will be edited\nplain filler content on this line\n";
+    let big_content = line.repeat(big_mb * 1024 * 1024 / line.len());
+    std::fs::write(bigdir.join("big.txt"), &big_content).unwrap();
+    drop(big_content);
+
+    // ── Scenarios ────────────────────────────────────────────────────
+    // Every tool gets a functionally equivalent in-place edit. sed/sd/perl
+    // receive an explicit file list via find -print0 | xargs -0 (they have
+    // no recursive discovery); ripsed discovers recursively itself — that
+    // built-in parallel discovery is part of what is being measured.
+    let tree_cmds = |pattern: &str| {
+        let mut v = Vec::new();
+        v.push((
+            "ripsed".to_string(),
+            format!("cd $WORK && {ripsed} '{pattern}' thread"),
+        ));
+        if have_sed {
+            v.push((
+                "sed".to_string(),
+                format!(
+                    "find $WORK -name '*.txt' -print0 | xargs -0 sed -i 's/{pattern}/thread/g'"
+                ),
+            ));
+        }
+        if have_sd {
+            v.push((
+                "sd".to_string(),
+                format!("find $WORK -name '*.txt' -print0 | xargs -0 sd '{pattern}' thread"),
+            ));
+        }
+        if have_perl {
+            v.push((
+                "perl".to_string(),
+                format!(
+                    "find $WORK -name '*.txt' -print0 | xargs -0 perl -pi -e 's/{pattern}/thread/g'"
+                ),
+            ));
+        }
+        v
+    };
+
+    let big_cmds = {
+        let mut v = vec![(
+            "ripsed".to_string(),
+            format!("cd $WORK && {ripsed} needle thread"),
+        )];
+        if have_sed {
+            v.push((
+                "sed".to_string(),
+                "sed -i 's/needle/thread/g' $WORK/big.txt".to_string(),
+            ));
+        }
+        if have_sd {
+            v.push((
+                "sd".to_string(),
+                "sd needle thread $WORK/big.txt".to_string(),
+            ));
+        }
+        if have_perl {
+            v.push((
+                "perl".to_string(),
+                "perl -pi -e 's/needle/thread/g' $WORK/big.txt".to_string(),
+            ));
+        }
+        v
+    };
+
+    let scenarios = [
+        Scenario {
+            name: "tree-replace",
+            description: "literal replace across a source tree",
+            commands: tree_cmds("needle"),
+            runs: if quick { 3 } else { 10 },
+        },
+        Scenario {
+            name: "tree-no-match",
+            description: "pattern matches nothing in the tree",
+            commands: tree_cmds("zebra"),
+            runs: if quick { 3 } else { 10 },
+        },
+        Scenario {
+            name: "big-file",
+            description: "literal replace in one large file",
+            commands: big_cmds,
+            runs: if quick { 3 } else { 10 },
+        },
+    ];
+
+    // ── Run ──────────────────────────────────────────────────────────
+    println!("\n## Results\n");
+    println!(
+        "Corpus: {n_files} files x {n_lines} lines (tree scenarios), {big_mb} MiB (big-file)."
+    );
+    for scenario in &scenarios {
+        let pristine = match scenario.name {
+            "tree-replace" => &tree,
+            "tree-no-match" => &nomatch,
+            _ => &bigdir,
+        };
+        let work = root.join(format!("{}-work", scenario.name));
+        let json_out = root.join(format!("{}.json", scenario.name));
+
+        let mut cmd = Command::new("hyperfine");
+        // --ignore-failure: ripsed currently exits 1 on zero matches
+        // (tree-no-match scenario); hyperfine would refuse to time it.
+        cmd.arg("--ignore-failure")
+            .arg("--warmup")
+            .arg("1")
+            .arg("--min-runs")
+            .arg(scenario.runs.to_string())
+            .arg("--prepare")
+            .arg(format!(
+                "rm -rf {work} && cp -r {pristine} {work}",
+                work = work.display(),
+                pristine = pristine.display()
+            ))
+            .arg("--export-json")
+            .arg(&json_out);
+        for (label, shell_cmd) in &scenario.commands {
+            cmd.arg("--command-name").arg(label);
+            cmd.arg(shell_cmd.replace("$WORK", &work.display().to_string()));
+        }
+        eprintln!("\n=== {} ({}) ===", scenario.name, scenario.description);
+        let status = cmd
+            .status()
+            .expect("hyperfine (install it to run bench-compare)");
+        assert!(status.success(), "hyperfine failed for {}", scenario.name);
+
+        // Markdown table row from hyperfine's JSON export.
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&json_out).unwrap()).unwrap();
+        println!("\n### {} — {}\n", scenario.name, scenario.description);
+        println!("| tool | mean | min |");
+        println!("|---|---|---|");
+        let results = data["results"].as_array().unwrap();
+        let best = results
+            .iter()
+            .map(|r| r["mean"].as_f64().unwrap())
+            .fold(f64::INFINITY, f64::min);
+        for r in results {
+            let mean = r["mean"].as_f64().unwrap();
+            let min = r["min"].as_f64().unwrap();
+            let marker = if (mean - best).abs() < f64::EPSILON {
+                " **(fastest)**"
+            } else {
+                ""
+            };
+            println!(
+                "| {}{} | {:.1} ms | {:.1} ms |",
+                r["command"].as_str().unwrap(),
+                marker,
+                mean * 1000.0,
+                min * 1000.0
+            );
+        }
+    }
+    eprintln!("\ncorpora and JSON exports left in target/bench-compare/");
 }
 
 fn gen_schema() {
