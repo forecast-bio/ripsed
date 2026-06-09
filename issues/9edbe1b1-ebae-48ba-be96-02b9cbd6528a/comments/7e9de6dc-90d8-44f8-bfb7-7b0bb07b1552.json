@@ -1,0 +1,10 @@
+{
+  "uuid": "7e9de6dc-90d8-44f8-bfb7-7b0bb07b1552",
+  "issue_uuid": "9edbe1b1-ebae-48ba-be96-02b9cbd6528a",
+  "author": "w3Lb",
+  "content": "Delivered in commit a935531. rustup stable 1.95.0 -> 1.96.0 (rustc + clippy 0.1.96 confirmed, x86_64-pc-windows-msvc target carried over). cargo update: main workspace bumped zerocopy 0.8.51->0.8.52 (only change); fuzz workspace already current; cargo outdated --root-deps-only: all direct deps current. cargo fmt --all: zero diffs. cargo clippy --all-targets --workspace -D warnings on 1.96: clean, no new lints fired. cargo test --workspace: 23 suites green. Windows-target cargo check: passes on 1.96. MSRV left at 1.93 (floor, not ceiling — no reason to raise).",
+  "created_at": "2026-06-09T20:05:39.043977998Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAkpBHwFOvIR/NUeTmavacMhYx4DnXpRNVvyHdy5Hs+6g41TL6cC2SYOPKBxge0V1qy9lOZmYmFuXXjPLgkcHtDg=="
+}
