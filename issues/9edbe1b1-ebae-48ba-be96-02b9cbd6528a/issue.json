@@ -1,0 +1,10 @@
+{
+  "uuid": "9edbe1b1-ebae-48ba-be96-02b9cbd6528a",
+  "display_id": 90,
+  "title": "Maintenance: update deps + latest stable Rust, fmt + strict clippy",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:02:50.364344761Z",
+  "updated_at": "2026-06-09T20:02:50.364344761Z"
+}
