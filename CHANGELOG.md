@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero matched files (the response body is unchanged).
 
 ### Added
+- Shell completions and man page (#101): `cargo xtask gen-completions`
+  generates bash/zsh/fish/powershell completions and `ripsed.1` from
+  the real clap definition (so they can never drift from the actual
+  flags); release artifacts ship them under `completions/` and CI
+  verifies generation on every push.
 - Comparative benchmark harness (#99): `cargo xtask bench-compare`
   generates corpora and measures ripsed against GNU sed, sd, and
   `perl -pi` via hyperfine, with a pristine corpus restored before

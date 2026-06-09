@@ -8,11 +8,42 @@ fn main() {
         Some("gen-fixtures") => gen_fixtures(),
         Some("bench") => bench(),
         Some("bench-compare") => bench_compare(args.iter().any(|a| a == "--quick")),
+        Some("gen-completions") => gen_completions(),
         _ => {
-            eprintln!("Usage: cargo xtask <gen-schema|gen-fixtures|bench|bench-compare [--quick]>");
+            eprintln!(
+                "Usage: cargo xtask <gen-schema|gen-fixtures|bench|bench-compare [--quick]|gen-completions>"
+            );
             std::process::exit(1);
         }
     }
+}
+
+/// Generate shell completions (bash, zsh, fish, powershell) and the man
+/// page into `dist/` from the real clap definition, so they can never
+/// drift from the binary's actual flags. Shipped in release artifacts.
+fn gen_completions() {
+    use clap::CommandFactory;
+    use clap_complete::Shell;
+
+    let dist = std::path::Path::new("dist");
+    let completions = dist.join("completions");
+    std::fs::create_dir_all(&completions).expect("create dist/completions");
+
+    let mut cmd = ripsed_cli::args::Cli::command();
+    cmd.set_bin_name("ripsed");
+
+    for shell in [Shell::Bash, Shell::Zsh, Shell::Fish, Shell::PowerShell] {
+        let path =
+            clap_complete::generate_to(shell, &mut cmd, "ripsed", &completions).expect("generate");
+        println!("wrote {}", path.display());
+    }
+
+    let man = clap_mangen::Man::new(cmd);
+    let mut buf = Vec::new();
+    man.render(&mut buf).expect("render man page");
+    let man_path = dist.join("ripsed.1");
+    std::fs::write(&man_path, buf).expect("write man page");
+    println!("wrote {}", man_path.display());
 }
 
 // ---------------------------------------------------------------------------

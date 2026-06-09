@@ -42,6 +42,9 @@ jobs:
       - name: Format check
         run: cargo fmt --all --check
 
+      - name: Completions and man page generate cleanly
+        run: cargo run -p xtask -- gen-completions
+
   msrv:
     name: MSRV (1.93)
     runs-on: ubuntu-latest

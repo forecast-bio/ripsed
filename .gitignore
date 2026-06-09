@@ -26,6 +26,9 @@ target
 # ripsed advisory-lock sentinels (persistent by design; never content)
 *.ripsed.lock
 
+# generated completions/man page (cargo xtask gen-completions)
+/dist/
+
 # === Crosslink managed (do not edit between markers) ===
 # .crosslink/ — machine-local state (never commit)
 # (**/ because crosslink hooks drop cache stamps in whatever crate
