@@ -6,5 +6,8 @@
   "priority": "high",
   "created_by": "w3Lb",
   "created_at": "2026-06-09T20:20:07.398514438Z",
-  "updated_at": "2026-06-09T20:20:07.398514438Z"
+  "updated_at": "2026-06-09T20:20:09.186342505Z",
+  "labels": [
+    "feature"
+  ]
 }
