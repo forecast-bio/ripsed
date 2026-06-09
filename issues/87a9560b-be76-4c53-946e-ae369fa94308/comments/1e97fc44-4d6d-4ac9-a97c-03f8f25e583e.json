@@ -1,0 +1,10 @@
+{
+  "uuid": "1e97fc44-4d6d-4ac9-a97c-03f8f25e583e",
+  "issue_uuid": "87a9560b-be76-4c53-946e-ae369fa94308",
+  "author": "w3Lb",
+  "content": "WHY: ripgrep-level reach means 'cargo install ripsed' and a brew formula, not 'clone and build'. SCOPE — checklist, each item independently shippable: (1) crates.io: verify the ripsed name is available (squatting check FIRST — if taken, decide fallback name before anything else); publish order ripsed-core -> ripsed-fs -> ripsed-json -> ripsed -> ripsed-cli (path+version deps already set up correctly in workspace Cargo.toml); add publish dry-run to dev-release skill flow; keywords/categories/description metadata on every crate; README badge. (2) Homebrew: tap repo (dollspace-gay/homebrew-ripsed) with formula pointing at release tarballs + sha256 (release.yml already emits checksums). (3) scoop manifest + AUR PKGBUILD (can be community-maintained later; document in README). (4) cargo-deb in release workflow for a .deb artifact. HUMAN STEPS: crates.io token, tap repo creation, AUR account — flag these in the issue when worked. DEPENDS loosely on #101 (artifacts should include completions before wide distribution).",
+  "created_at": "2026-06-09T20:24:14.273307692Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAz5pqUS0iOWkPjLbwbbwz65HLlHleLfdNhvAMDMP0KW40aw+M5wu+wCkeF2Kc6y+r+QK03bURlJGJ7iF9gTQFDg=="
+}
