@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix `Change.after` metadata for InsertAfter/InsertBefore hardcoding
+  LF between the matched line and the inserted content. On CRLF files
+  the written output was already correct, but the structured diff shown
+  in JSON mode didn't match the actual file bytes. The metadata now
+  uses the file's detected line separator. (#89)
+
 ### Changed
 - Semver-compatible dependency refresh via `cargo update` (regex,
   serde_json, libc, ignore, zerocopy, shlex 1→2 transitive, and

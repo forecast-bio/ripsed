@@ -61,6 +61,9 @@ struct LineCtx<'a> {
     lines: &'a [&'a str],
     idx: usize,
     context_lines: usize,
+    /// The file's detected line separator — multi-line `Change` metadata
+    /// must use this so it matches the bytes actually written.
+    line_sep: &'a str,
 }
 
 impl LineCtx<'_> {
@@ -110,7 +113,7 @@ fn apply_insert_after(cx: &LineCtx, content: &str) -> LineAction {
             change: Change {
                 line: cx.line_num,
                 before: cx.line.to_string(),
-                after: Some(format!("{}\n{content}", cx.line)),
+                after: Some(format!("{}{}{content}", cx.line, cx.line_sep)),
                 context: Some(cx.build_context()),
             },
         }
@@ -127,7 +130,7 @@ fn apply_insert_before(cx: &LineCtx, content: &str) -> LineAction {
             change: Change {
                 line: cx.line_num,
                 before: cx.line.to_string(),
-                after: Some(format!("{content}\n{}", cx.line)),
+                after: Some(format!("{content}{}{}", cx.line_sep, cx.line)),
                 context: Some(cx.build_context()),
             },
         }
@@ -258,6 +261,7 @@ pub fn apply(
     context_lines: usize,
 ) -> Result<EngineOutput, RipsedError> {
     let crlf = uses_crlf(text);
+    let line_sep = if crlf { "\r\n" } else { "\n" };
     let lines: Vec<&str> = text.lines().collect();
     let mut result_lines: Vec<String> = Vec::with_capacity(lines.len());
     let mut changes: Vec<Change> = Vec::new();
@@ -280,6 +284,7 @@ pub fn apply(
             lines: &lines,
             idx,
             context_lines,
+            line_sep,
         };
 
         let action = match op {
@@ -323,7 +328,6 @@ pub fn apply(
         }
     }
 
-    let line_sep = if crlf { "\r\n" } else { "\n" };
     let modified_text = if changes.is_empty() {
         None
     } else {
@@ -589,6 +593,70 @@ mod tests {
         assert_eq!(output, "hi world\r\nfoo bar");
         // No trailing CRLF since original didn't have one
         assert!(!output.ends_with("\r\n"));
+    }
+
+    #[test]
+    fn test_crlf_insert_after_metadata_uses_crlf() {
+        let text = "alpha\r\nbeta\r\n";
+        let op = Op::InsertAfter {
+            find: "alpha".to_string(),
+            content: "inserted".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+
+        let output = result.text.unwrap();
+        assert_eq!(output, "alpha\r\ninserted\r\nbeta\r\n");
+
+        // The Change.after metadata must show the same bytes the file gets:
+        // CRLF between the matched line and the inserted content, not LF.
+        let after = result.changes[0].after.as_deref().unwrap();
+        assert_eq!(after, "alpha\r\ninserted");
+        assert!(
+            output.contains(after),
+            "metadata {after:?} must appear verbatim in output {output:?}"
+        );
+    }
+
+    #[test]
+    fn test_crlf_insert_before_metadata_uses_crlf() {
+        let text = "alpha\r\nbeta\r\n";
+        let op = Op::InsertBefore {
+            find: "beta".to_string(),
+            content: "inserted".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+
+        let output = result.text.unwrap();
+        assert_eq!(output, "alpha\r\ninserted\r\nbeta\r\n");
+
+        let after = result.changes[0].after.as_deref().unwrap();
+        assert_eq!(after, "inserted\r\nbeta");
+        assert!(
+            output.contains(after),
+            "metadata {after:?} must appear verbatim in output {output:?}"
+        );
+    }
+
+    #[test]
+    fn test_lf_insert_after_metadata_uses_lf() {
+        // Guard the default: LF files keep LF in the metadata.
+        let text = "alpha\nbeta\n";
+        let op = Op::InsertAfter {
+            find: "alpha".to_string(),
+            content: "inserted".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        let after = result.changes[0].after.as_deref().unwrap();
+        assert_eq!(after, "alpha\ninserted");
     }
 
     #[test]
