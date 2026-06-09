@@ -1,0 +1,10 @@
+{
+  "uuid": "5ce7acc7-048f-499a-97bb-f67a80cb9317",
+  "issue_uuid": "d5aeb4d5-54bc-4540-b6dc-d1f4a251de80",
+  "author": "w3Lb",
+  "content": "WHY: sed's /begin/,/end/ addressing — 'only operate between these markers' — has no ripsed equivalent; -n N:M is numeric only. Real agent case: edit only inside the [dependencies] section of a TOML. SCOPE: ripsed-core — new RangeSpec enum { Lines(LineRange), Patterns { start: String, end: String, regex: bool } }; engine tracks in-range state per line (toggle on start-match, toggle off after end-match; multiple regions supported; unterminated end = through EOF, matching sed). CLI: extend -n to accept '/start/,/end/' syntax or add --range-pattern start end (decide in implementation; document precedence with -n). JSON: \"line_range\" stays, add \"range\": {\"start_pattern\": ..., \"end_pattern\": ...} validated mutually exclusive with line_range. TESTS: single region, multiple regions, nested start markers, unterminated region to EOF, start==end pattern on same line, interaction with delete (deleting the marker lines themselves).",
+  "created_at": "2026-06-09T20:20:58.492492532Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAM2Gom4nkyaHF2/mJbcPaEZsZxXTeSOMfH1W6bI1xxyDDZSONSsW43v21qy/wl4IPSfSCn/wYFwfIg0EyAZYlDg=="
+}
