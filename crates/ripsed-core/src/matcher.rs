@@ -24,7 +24,32 @@ pub enum Matcher {
     /// implementation backing case-insensitive literal matching (via
     /// `regex::escape` + `(?i)`), which avoids byte-offset mismatches from
     /// `str::to_lowercase()` on multi-byte Unicode characters.
-    Regex(Regex),
+    Regex {
+        re: Regex,
+        /// Whole-buffer fast-reject shadow: the same pattern compiled with
+        /// `(?m)` so `^`/`$` keep their per-line meaning against a full
+        /// buffer. `None` when no sound shadow exists (see
+        /// [`prescreen_shadow`]) — then prescreening always says "maybe".
+        prescreen: Option<Regex>,
+    },
+}
+
+/// Build the whole-buffer prescreen shadow for a regex pattern, or `None`
+/// when a sound one can't be constructed.
+///
+/// Prepending `(?m)` gives `^`/`$` the same line-boundary semantics on a
+/// whole buffer that they have when matching line by line. That is NOT
+/// sound for patterns using `\A`/`\z`/`\Z` (which anchor to the haystack —
+/// each *line* in per-line matching, the whole buffer in the shadow) or
+/// containing a flag-negating group like `(?-m)` that could switch the
+/// multiline flag back off. Those patterns simply don't get a prescreen.
+fn prescreen_shadow(re_pattern: &str) -> Option<Regex> {
+    // (`\Z` needs no check: the regex crate rejects it at compile time,
+    // so such a pattern never reaches prescreening.)
+    if re_pattern.contains(r"\A") || re_pattern.contains(r"\z") || re_pattern.contains("(?-") {
+        return None;
+    }
+    Regex::new(&format!("(?m){re_pattern}")).ok()
 }
 
 impl Matcher {
@@ -47,11 +72,16 @@ impl Matcher {
             } else {
                 re_src
             };
-            Regex::new(&re_pattern).map(Matcher::Regex).map_err(|e| {
-                let mut err = RipsedError::invalid_regex(0, pattern, &e.to_string());
-                err.operation_index = None;
-                err
-            })
+            Regex::new(&re_pattern)
+                .map(|re| Matcher::Regex {
+                    prescreen: prescreen_shadow(&re_pattern),
+                    re,
+                })
+                .map_err(|e| {
+                    let mut err = RipsedError::invalid_regex(0, pattern, &e.to_string());
+                    err.operation_index = None;
+                    err
+                })
         } else {
             Ok(Matcher::Literal {
                 pattern: pattern.to_string(),
@@ -59,11 +89,29 @@ impl Matcher {
         }
     }
 
+    /// Cheap whole-buffer check: `false` means no line of `text` can match
+    /// this pattern, so per-line processing can be skipped entirely.
+    /// `true` means "maybe" — false positives are fine, false negatives
+    /// are a correctness bug (locked by a proptest).
+    pub fn prescreen(&self, text: &str) -> bool {
+        match self {
+            Matcher::Literal { pattern } => text.contains(pattern.as_str()),
+            Matcher::Regex {
+                prescreen: Some(shadow),
+                ..
+            } => shadow.is_match(text),
+            // No sound shadow — always maybe.
+            Matcher::Regex {
+                prescreen: None, ..
+            } => true,
+        }
+    }
+
     /// Check if the given text matches.
     pub fn is_match(&self, text: &str) -> bool {
         match self {
             Matcher::Literal { pattern, .. } => text.contains(pattern.as_str()),
-            Matcher::Regex(re) => re.is_match(text),
+            Matcher::Regex { re, .. } => re.is_match(text),
         }
     }
 
@@ -77,7 +125,7 @@ impl Matcher {
                     None
                 }
             }
-            Matcher::Regex(re) => {
+            Matcher::Regex { re, .. } => {
                 if re.is_match(text) {
                     Some(re.replace_all(text, replacement).into_owned())
                 } else {
@@ -111,7 +159,7 @@ impl Matcher {
                 };
                 Some((text.replacen(pattern.as_str(), replacement, n), n))
             }
-            Matcher::Regex(re) => {
+            Matcher::Regex { re, .. } => {
                 let occurrences = re.find_iter(text).count();
                 if occurrences == 0 {
                     return None;
@@ -143,7 +191,7 @@ impl Matcher {
                     replacement: replacement.to_string(),
                 })
                 .collect(),
-            Matcher::Regex(re) => re
+            Matcher::Regex { re, .. } => re
                 .captures_iter(text)
                 .map(|caps| {
                     let m = caps.get(0).expect("capture group 0 always exists");
@@ -743,6 +791,37 @@ mod proptests {
             let expected = m.replace(&text, &replacement).unwrap_or_else(|| text.clone());
             prop_assert_eq!(spliced, expected);
         }
+
+        /// SOUNDNESS: prescreen(text) == false must imply that no line of
+        /// the text matches — a false skip would silently drop edits.
+        /// Exercises literals and regexes including line anchors.
+        #[test]
+        fn prop_prescreen_never_false_skips(
+            text in "(?:[abc^$\\n]{0,8}\\n?){0,6}",
+            pattern in "(?:\\^?[abc]{1,3}\\$?)|(?:[abc]{1,4})",
+            is_regex in proptest::bool::ANY,
+        ) {
+            let op = Op::Replace {
+                count: Default::default(),
+                multiline: false,
+                find: pattern.clone(),
+                replace: String::new(),
+                regex: is_regex,
+                case_insensitive: false,
+            };
+            // Skip combos that don't compile as regex.
+            let Ok(m) = Matcher::new(&op) else { return Ok(()) };
+            if !m.prescreen(&text) {
+                for line in text.lines() {
+                    prop_assert!(
+                        !m.is_match(line),
+                        "prescreen said no, but line {:?} matches {:?}",
+                        line,
+                        pattern
+                    );
+                }
+            }
+        }
     }
 
     #[test]
@@ -844,6 +923,89 @@ mod proptests {
         let m = Matcher::new(&op).unwrap();
         let (text, _) = m.replace_n("ab ab ab", "X", 0).unwrap();
         assert_eq!(text, m.replace("ab ab ab", "X").unwrap());
+    }
+
+    // ── Prescreen ──
+
+    #[test]
+    fn test_prescreen_literal() {
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "needle".to_string(),
+            replace: "x".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let m = Matcher::new(&op).unwrap();
+        assert!(m.prescreen("hay needle hay"));
+        assert!(!m.prescreen("just hay"));
+    }
+
+    #[test]
+    fn test_prescreen_anchored_regex_is_sound() {
+        // The critical case: ^foo matches line 2 in per-line processing but
+        // NOT against the whole buffer without (?m). The shadow must say
+        // "maybe" here, never "no".
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "^foo".to_string(),
+            replace: "x".to_string(),
+            regex: true,
+            case_insensitive: false,
+        };
+        let m = Matcher::new(&op).unwrap();
+        assert!(m.prescreen("bar\nfoo\n"), "(?m) shadow must see line 2");
+        assert!(!m.prescreen("bar\nbaz\n"));
+
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "foo$".to_string(),
+            replace: "x".to_string(),
+            regex: true,
+            case_insensitive: false,
+        };
+        let m = Matcher::new(&op).unwrap();
+        assert!(m.prescreen("foo\nbar\n"));
+    }
+
+    #[test]
+    fn test_prescreen_haystack_anchors_disable_shadow() {
+        // \A anchors to the haystack: each LINE in per-line matching, the
+        // whole buffer in a shadow — no sound shadow exists, so prescreen
+        // must always say "maybe".
+        for pattern in [r"\Afoo", r"foo\z", r"(?-m)^foo"] {
+            let op = Op::Replace {
+                count: Default::default(),
+                multiline: false,
+                find: pattern.to_string(),
+                replace: "x".to_string(),
+                regex: true,
+                case_insensitive: false,
+            };
+            let m = Matcher::new(&op).unwrap();
+            assert!(
+                m.prescreen("anything at all"),
+                "{pattern} must never prescreen-reject"
+            );
+        }
+    }
+
+    #[test]
+    fn test_prescreen_case_insensitive_literal() {
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "Needle".to_string(),
+            replace: "x".to_string(),
+            regex: false,
+            case_insensitive: true,
+        };
+        let m = Matcher::new(&op).unwrap();
+        assert!(m.prescreen("hay NEEDLE hay"));
+        assert!(!m.prescreen("just hay"));
     }
 
     #[test]

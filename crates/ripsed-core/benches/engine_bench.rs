@@ -42,6 +42,35 @@ fn bench_simple_replace(c: &mut Criterion) {
     group.finish();
 }
 
+/// The prescreen showcase: a buffer where the pattern never matches.
+/// Before the whole-buffer prescreen, this paid the full per-line loop;
+/// now it should approach raw substring-search throughput.
+fn bench_no_match_prescreen(c: &mut Criterion) {
+    let mut group = c.benchmark_group("no_match_prescreen");
+
+    for &size in &[1_000, 10_000] {
+        let text = generate_text(size);
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "zebra".to_string(), // never present
+            replace: "cat".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+
+        group.bench_function(format!("literal_{size}_lines"), |b| {
+            b.iter(|| {
+                let result = apply(black_box(&text), &op, &matcher, None, 0).unwrap();
+                black_box(result);
+            });
+        });
+    }
+
+    group.finish();
+}
+
 fn bench_regex_replace_with_captures(c: &mut Criterion) {
     let text = generate_text(1_000);
     let op = Op::Replace {
@@ -177,6 +206,7 @@ fn bench_insert_after(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_simple_replace,
+    bench_no_match_prescreen,
     bench_regex_replace_with_captures,
     bench_delete,
     bench_case_insensitive_replace,

@@ -378,6 +378,20 @@ pub fn apply(
     }
 
     let mut range_filter = RangeFilter::new(range.as_ref())?;
+
+    // Fast reject: if the pattern can't match anywhere in the buffer, no
+    // line can match it — skip the per-line loop entirely. (Prescreen
+    // false positives are fine; false negatives would be a bug, locked
+    // down by `prop_prescreen_never_false_skips`.) Runs after range
+    // validation so invalid range regexes still error.
+    if !matcher.prescreen(text) {
+        return Ok(EngineOutput {
+            text: None,
+            changes: Vec::new(),
+            undo: None,
+        });
+    }
+
     let crlf = uses_crlf(text);
     let line_sep = if crlf { "\r\n" } else { "\n" };
     let lines: Vec<&str> = text.lines().collect();
@@ -582,7 +596,7 @@ fn apply_transform(line: &str, matcher: &Matcher, mode: TransformMode) -> String
         Matcher::Literal { pattern, .. } => {
             line.replace(pattern.as_str(), &transform_text(pattern, mode))
         }
-        Matcher::Regex(re) => {
+        Matcher::Regex { re, .. } => {
             let result = re.replace_all(line, |caps: &regex::Captures| {
                 transform_text(&caps[0], mode)
             });

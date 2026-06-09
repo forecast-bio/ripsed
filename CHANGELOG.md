@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Whole-buffer prescreen fast-reject (#98): before the per-line loop,
+  the engine checks whether the pattern can match anywhere in the
+  buffer (literal `contains`; for regexes a `(?m)`-compiled shadow so
+  `^`/`$` keep per-line semantics) and skips non-matching files
+  outright. Patterns using `\A`/`\z` or flag-negating groups get no
+  shadow and always proceed (soundness locked by a proptest: a
+  prescreen reject implies no line matches). A 10k-line non-matching
+  buffer drops from ~2.8 ms to ~10 µs in the engine benchmark.
 - Parallel file application (#97): file mode and script mode fan files
   out across a rayon worker pool (one file per worker; the existing
   per-file advisory locks make this safe), with `--threads N` to
