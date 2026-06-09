@@ -1,0 +1,10 @@
+{
+  "uuid": "5797cb73-576f-4776-91ef-d6cd7e655988",
+  "issue_uuid": "8bca9f8b-fd37-44bd-9244-5bfaaa9a61ce",
+  "author": "w3Lb",
+  "content": "Delivered in commit 3f988cc. Op::Replace/Op::Delete gain multiline field (serde default false; line-scoped ops can't express it at the type level). Matcher::find_replacements returns non-overlapping MatchSpans with capture-expanded replacements; splice-equivalence with Matcher::replace locked by proptest. engine::apply_multiline splices spans into the original buffer — separators outside matches untouched byte-for-byte, trailing newline preserved naturally, Change metadata (raw span bytes, 1-indexed start line, span context) always equals written bytes (the #89 invariant). Delete removes spans, not lines. line_range + multiline -> invalid_request. ~110 construction sites patched (compiler-diagnostic-driven script), fuzz_engine now fuzzes the multiline path. 20 new tests across engine/matcher/operation. All 23 suites green, clippy/fmt clean, fuzz workspace compiles. Unblocks #92.",
+  "created_at": "2026-06-09T20:38:28.638003051Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABACjTuEnghqX2Ug4Oil8ikYTVk+bjRuOE4xPobrdFUnEl1KinLCQae6YU3DOYiYbSgI55Rc/D24YLe2exLoFJnCg=="
+}
