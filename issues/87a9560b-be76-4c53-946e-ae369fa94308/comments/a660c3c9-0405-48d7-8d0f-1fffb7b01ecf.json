@@ -1,0 +1,10 @@
+{
+  "uuid": "a660c3c9-0405-48d7-8d0f-1fffb7b01ecf",
+  "issue_uuid": "87a9560b-be76-4c53-946e-ae369fa94308",
+  "author": "w3Lb",
+  "content": "Delivered in commit 898c68a. KEY DISCOVERY: the crates.io name-squatting check revealed all five crates are ALREADY published (0.2.0-0.2.9, owner dollspace-gay) — issue scope pivoted from 'publish' to 'publish-readiness': (1) metadata gaps fixed — keywords/categories/homepage on all crates (published versions had none), ripsed-cli description upgraded from 'CLI binary for ripsed'; (2) README finally documents cargo install ripsed-cli (was 'from source' only, and claimed Rust 1.85); (3) release workflow deb job via cargo-deb with man page + completions at proper Debian paths; (4) packaging/ templates: brew formula (per-arch URLs, completions install, test block), scoop manifest with autoupdate, AUR PKGBUILD — all with placeholder + update instructions; (5) packaging/README documents publish order core->fs->json->ripsed->cli and the one-time HUMAN STEPS: tap repo creation, scoop bucket, AUR account+SSH. NOTE for next release: cargo publish --dry-run fails until 0.3.0 publishes in dependency order (new APIs not on crates.io yet) — expected, verified. 25 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T22:05:03.973524574Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAwud2PCcFDVcKyz+3IwOJW0tMS8Bz5+sNA9mipzOM7F3z5SD4jjTY+/EqmOuoz5ENy5mfrg1qC94PMteWsyOYAw=="
+}
