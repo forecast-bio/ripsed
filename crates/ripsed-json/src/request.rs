@@ -120,6 +120,20 @@ impl JsonRequest {
                 return Err(err);
             }
 
+            // Same detection pattern for 'count', which only replace consumes.
+            // An explicit "all" is the default and tolerated as a no-op.
+            if !matches!(json_op.op, Op::Replace { .. })
+                && let Some(value) = json_op.extra.get("count")
+                && value.as_str() != Some("all")
+            {
+                let mut err = RipsedError::invalid_request(
+                    format!("Operation {i}: 'count' is not supported for this operation type."),
+                    "Replacement counts are only available for 'replace' operations.",
+                );
+                err.operation_index = Some(i);
+                return Err(err);
+            }
+
             // Validate per-operation glob if present
             if let Some(glob) = &json_op.glob {
                 validate_glob_pattern(glob).map_err(|msg| {
@@ -174,7 +188,13 @@ impl JsonRequest {
 fn validate_op(index: usize, op: &Op) -> Result<(), RipsedError> {
     match op {
         // Note: an empty replacement is valid (it deletes the matched text)
-        Op::Replace { find, regex, .. } => {
+        Op::Replace {
+            find,
+            regex,
+            multiline,
+            count,
+            ..
+        } => {
             if find.is_empty() {
                 return Err(RipsedError::invalid_request(
                     format!("Operation {index}: 'find' must not be empty for replace."),
@@ -183,6 +203,20 @@ fn validate_op(index: usize, op: &Op) -> Result<(), RipsedError> {
             }
             if *regex {
                 validate_regex(index, find)?;
+            }
+            if let ripsed_core::operation::ReplaceCount::Max(0) = count {
+                return Err(RipsedError::invalid_request(
+                    format!("Operation {index}: 'count' max must be at least 1."),
+                    format!("Set {{\"max\": n}} with n >= 1 in operation {index}."),
+                ));
+            }
+            if *multiline && matches!(count, ripsed_core::operation::ReplaceCount::FirstPerLine) {
+                return Err(RipsedError::invalid_request(
+                    format!(
+                        "Operation {index}: 'first_per_line' count is not supported with multiline."
+                    ),
+                    "Per-line counting has no meaning when matching the whole buffer; use 'first_in_file' or {\"max\": n}.",
+                ));
             }
         }
         Op::Delete { find, regex, .. } => {
@@ -998,6 +1032,58 @@ mod tests {
             assert_eq!(err.operation_index, Some(0));
             assert!(err.message.contains("multiline"));
         }
+    }
+
+    // ── Replacement count ──
+
+    #[test]
+    fn test_count_accepted_on_replace() {
+        let input = r#"{
+            "operations": [
+                {"op": "replace", "find": "a", "replace": "b", "count": "first_per_line"},
+                {"op": "replace", "find": "a", "replace": "b", "count": {"max": 2}}
+            ]
+        }"#;
+        assert!(JsonRequest::parse(input).is_ok());
+    }
+
+    #[test]
+    fn test_count_max_zero_rejected() {
+        let input = r#"{
+            "operations": [{"op": "replace", "find": "a", "replace": "b", "count": {"max": 0}}]
+        }"#;
+        let err = JsonRequest::parse(input).unwrap_err();
+        assert_eq!(err.code, ripsed_core::error::ErrorCode::InvalidRequest);
+        assert!(err.message.contains("max"));
+    }
+
+    #[test]
+    fn test_count_rejected_on_non_replace_ops() {
+        let input = r#"{
+            "operations": [{"op": "delete", "find": "a", "count": "first_per_line"}]
+        }"#;
+        let err = JsonRequest::parse(input).unwrap_err();
+        assert_eq!(err.code, ripsed_core::error::ErrorCode::InvalidRequest);
+        assert_eq!(err.operation_index, Some(0));
+        assert!(err.message.contains("count"));
+    }
+
+    #[test]
+    fn test_count_all_tolerated_on_non_replace_ops() {
+        let input = r#"{
+            "operations": [{"op": "delete", "find": "a", "count": "all"}]
+        }"#;
+        assert!(JsonRequest::parse(input).is_ok());
+    }
+
+    #[test]
+    fn test_count_first_per_line_with_multiline_rejected() {
+        let input = r#"{
+            "operations": [{"op": "replace", "find": "a", "replace": "b", "multiline": true, "count": "first_per_line"}]
+        }"#;
+        let err = JsonRequest::parse(input).unwrap_err();
+        assert_eq!(err.code, ripsed_core::error::ErrorCode::InvalidRequest);
+        assert!(err.message.contains("first_per_line"));
     }
 
     // ── Case insensitive flag ──

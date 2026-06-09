@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Replacement count control (#93): `Op::Replace` gains a `count` field
+  — `"all"` (default), `"first_per_line"` (sed `s///` without `/g`),
+  `"first_in_file"`, or `{"max": n}` (occurrence cap per file). CLI:
+  `--first`, `--first-in-file`, `--max-replacements N` (mutually
+  exclusive, replace-only). `.rip` scripts accept the same flags.
+  `first_per_line` is rejected in multiline mode; `{"max": 0}` is
+  rejected. Breaking for library users: constructing `Op::Replace`
+  literals now requires the `count` field; the JSON wire format is
+  unaffected (optional, defaults to `"all"`).
 - Multiline mode surface (#92): CLI `-U`/`--multiline` (conflicts with
   line-scoped flags via clap), JSON `"multiline": true` on replace and
   delete ops (rejected with `invalid_request` + `operation_index` on

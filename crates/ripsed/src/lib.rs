@@ -16,6 +16,7 @@
 //!     regex: false,
 //!     case_insensitive: false,
 //!     multiline: false,
+//!     count: Default::default(),
 //! };
 //!
 //! let result = apply_to_file(

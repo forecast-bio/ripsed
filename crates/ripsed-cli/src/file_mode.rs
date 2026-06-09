@@ -1,7 +1,7 @@
 use ripsed_core::config::Config;
 use ripsed_core::engine;
 use ripsed_core::matcher::Matcher;
-use ripsed_core::operation::Op;
+use ripsed_core::operation::{Op, ReplaceCount};
 use ripsed_fs::discovery::{WalkStrategy, discover_files_auto};
 use ripsed_fs::lock::FileLock;
 use ripsed_fs::reader;
@@ -209,6 +209,15 @@ pub fn build_op_from_cli(cli: &Cli, find: &str) -> Op {
     let find = find.to_string();
     let regex = cli.regex;
     let case_insensitive = cli.case_insensitive;
+    let count = if cli.first {
+        ReplaceCount::FirstPerLine
+    } else if cli.first_in_file {
+        ReplaceCount::FirstInFile
+    } else if let Some(n) = cli.max_replacements {
+        ReplaceCount::Max(n)
+    } else {
+        ReplaceCount::All
+    };
 
     if cli.delete {
         Op::Delete {
@@ -271,6 +280,7 @@ pub fn build_op_from_cli(cli: &Cli, find: &str) -> Op {
         }
     } else {
         Op::Replace {
+            count,
             multiline: cli.multiline,
             find,
             replace: cli.replace.clone().unwrap_or_default(),

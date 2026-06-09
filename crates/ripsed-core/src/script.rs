@@ -159,6 +159,7 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
     let mut regex = false;
     let mut case_insensitive = false;
     let mut multiline = false;
+    let mut count = crate::operation::ReplaceCount::All;
     let mut glob: Option<String> = None;
     let mut positional: Vec<String> = Vec::new();
     let mut named: std::collections::HashMap<String, String> = std::collections::HashMap::new();
@@ -169,6 +170,30 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
             "-e" | "--regex" => regex = true,
             "-i" | "--case-insensitive" => case_insensitive = true,
             "-U" | "--multiline" => multiline = true,
+            "--first" => count = crate::operation::ReplaceCount::FirstPerLine,
+            "--first-in-file" => count = crate::operation::ReplaceCount::FirstInFile,
+            "--max-replacements" => {
+                i += 1;
+                if i >= args.len() {
+                    return Err(script_error(
+                        line_num,
+                        "--max-replacements requires a value",
+                    ));
+                }
+                let n: usize = args[i].parse().map_err(|_| {
+                    script_error(
+                        line_num,
+                        &format!("--max-replacements: '{}' is not a valid number", args[i]),
+                    )
+                })?;
+                if n == 0 {
+                    return Err(script_error(
+                        line_num,
+                        "--max-replacements must be at least 1",
+                    ));
+                }
+                count = crate::operation::ReplaceCount::Max(n);
+            }
             "--glob" => {
                 i += 1;
                 if i >= args.len() {
@@ -225,10 +250,27 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
         ));
     }
 
+    // Count flags only apply to replace
+    if count != crate::operation::ReplaceCount::All && op_name != "replace" {
+        return Err(script_error(
+            line_num,
+            &format!(
+                "--first/--first-in-file/--max-replacements are not supported for '{op_name}' (replace only)"
+            ),
+        ));
+    }
+    if multiline && count == crate::operation::ReplaceCount::FirstPerLine {
+        return Err(script_error(
+            line_num,
+            "--first cannot be combined with --multiline (use --first-in-file or --max-replacements)",
+        ));
+    }
+
     let op = match op_name.as_str() {
         "replace" => {
             require_positional_count(&positional, 2, "replace", line_num)?;
             Op::Replace {
+                count,
                 multiline,
                 find: positional[0].clone(),
                 replace: positional[1].clone(),
@@ -494,6 +536,7 @@ mod tests {
         assert_eq!(
             *op,
             Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: "old".to_string(),
                 replace: "new".to_string(),
@@ -525,6 +568,41 @@ mod tests {
     }
 
     #[test]
+    fn parse_count_flags_on_replace() {
+        use crate::operation::ReplaceCount;
+        for (flag, expected) in [
+            ("--first", ReplaceCount::FirstPerLine),
+            ("--first-in-file", ReplaceCount::FirstInFile),
+            ("--max-replacements 3", ReplaceCount::Max(3)),
+        ] {
+            let input = format!(r#"replace {flag} "old" "new""#);
+            let script = parse_script(&input).unwrap();
+            match &script.operations[0].op {
+                Op::Replace { count, .. } => assert_eq!(*count, expected, "flag {flag}"),
+                other => panic!("expected Replace, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_count_flags_rejected_for_non_replace() {
+        let err = parse_script(r#"delete "x" --first"#).unwrap_err();
+        assert!(err.message.contains("replace only"));
+    }
+
+    #[test]
+    fn parse_max_replacements_zero_rejected() {
+        let err = parse_script(r#"replace "a" "b" --max-replacements 0"#).unwrap_err();
+        assert!(err.message.contains("at least 1"));
+    }
+
+    #[test]
+    fn parse_first_with_multiline_rejected() {
+        let err = parse_script(r#"replace "a" "b" --first -U"#).unwrap_err();
+        assert!(err.message.contains("cannot be combined"));
+    }
+
+    #[test]
     fn parse_multiline_rejected_for_line_scoped_ops() {
         for line in [
             r#"transform "x" --mode upper --multiline"#,
@@ -548,6 +626,7 @@ mod tests {
         assert_eq!(
             *op,
             Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: r"fn\s+old_(\w+)".to_string(),
                 replace: "fn new_$1".to_string(),

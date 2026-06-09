@@ -87,6 +87,45 @@ impl Matcher {
         }
     }
 
+    /// Replace up to `limit` matches (0 = unlimited), left to right.
+    ///
+    /// Returns the new text and how many occurrences were replaced, or
+    /// `None` if nothing matched. With `limit == 0` this is exactly
+    /// [`Matcher::replace`] plus the occurrence count.
+    pub fn replace_n(
+        &self,
+        text: &str,
+        replacement: &str,
+        limit: usize,
+    ) -> Option<(String, usize)> {
+        match self {
+            Matcher::Literal { pattern } => {
+                let occurrences = text.match_indices(pattern.as_str()).count();
+                if occurrences == 0 {
+                    return None;
+                }
+                let n = if limit == 0 {
+                    occurrences
+                } else {
+                    occurrences.min(limit)
+                };
+                Some((text.replacen(pattern.as_str(), replacement, n), n))
+            }
+            Matcher::Regex(re) => {
+                let occurrences = re.find_iter(text).count();
+                if occurrences == 0 {
+                    return None;
+                }
+                let n = if limit == 0 {
+                    occurrences
+                } else {
+                    occurrences.min(limit)
+                };
+                Some((re.replacen(text, n, replacement).into_owned(), n))
+            }
+        }
+    }
+
     /// Find every non-overlapping match in `text` and compute its expanded
     /// replacement, left to right.
     ///
@@ -128,6 +167,7 @@ mod tests {
     #[test]
     fn test_literal_match() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -142,6 +182,7 @@ mod tests {
     #[test]
     fn test_literal_case_insensitive() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -156,6 +197,7 @@ mod tests {
     #[test]
     fn test_regex_match() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"fn\s+(\w+)".to_string(),
             replace: "fn new_$1".to_string(),
@@ -170,6 +212,7 @@ mod tests {
     #[test]
     fn test_regex_replace_with_captures() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"fn\s+old_(\w+)".to_string(),
             replace: "fn new_$1".to_string(),
@@ -184,6 +227,7 @@ mod tests {
     #[test]
     fn test_invalid_regex() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "fn (foo".to_string(),
             replace: "bar".to_string(),
@@ -201,6 +245,7 @@ mod tests {
     #[test]
     fn test_empty_pattern_literal_matches_everything() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "".to_string(),
             replace: "x".to_string(),
@@ -216,6 +261,7 @@ mod tests {
     #[test]
     fn test_empty_pattern_literal_replace() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "".to_string(),
             replace: "x".to_string(),
@@ -231,6 +277,7 @@ mod tests {
     #[test]
     fn test_empty_pattern_regex_matches_everything() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "".to_string(),
             replace: "x".to_string(),
@@ -249,6 +296,7 @@ mod tests {
     #[test]
     fn test_pattern_matches_entire_line_literal() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello world".to_string(),
             replace: "goodbye".to_string(),
@@ -263,6 +311,7 @@ mod tests {
     #[test]
     fn test_pattern_matches_entire_line_regex() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"^.*$".to_string(),
             replace: "replaced".to_string(),
@@ -277,6 +326,7 @@ mod tests {
     #[test]
     fn test_regex_anchored_full_line() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"^fn main\(\)$".to_string(),
             replace: "fn start()".to_string(),
@@ -296,6 +346,7 @@ mod tests {
     #[test]
     fn test_case_insensitive_ascii() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "Hello".to_string(),
             replace: "hi".to_string(),
@@ -316,6 +367,7 @@ mod tests {
         // and to_lowercase() of "\u{00DF}" (sharp-s) is "\u{00DF}"
         // This tests that the engine handles non-trivial unicode casing
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "stra\u{00DF}e".to_string(), // "strasse" with sharp-s
             replace: "street".to_string(),
@@ -332,6 +384,7 @@ mod tests {
         // This is a known edge case. We test that the matcher doesn't panic
         // and behaves consistently with Unicode simple case folding.
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "i".to_string(),
             replace: "x".to_string(),
@@ -370,6 +423,7 @@ mod tests {
         ];
         for (pat, name) in patterns {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: pat.to_string(),
                 replace: "X".to_string(),
@@ -398,6 +452,7 @@ mod tests {
     #[test]
     fn test_multiple_matches_same_line() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "ab".to_string(),
             replace: "X".to_string(),
@@ -412,6 +467,7 @@ mod tests {
     #[test]
     fn test_replace_with_empty_string() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "remove".to_string(),
             replace: "".to_string(),
@@ -426,6 +482,7 @@ mod tests {
     #[test]
     fn test_no_match_returns_none() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "xyz".to_string(),
             replace: "abc".to_string(),
@@ -453,6 +510,7 @@ mod tests {
     #[test]
     fn test_literal_dollar_one_pattern() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "$1".to_string(),
             replace: "REPLACED".to_string(),
@@ -472,6 +530,7 @@ mod tests {
     #[test]
     fn test_regex_backreferences_work_in_replace() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"hello (\w+)".to_string(),
             replace: "greetings, $1!".to_string(),
@@ -491,6 +550,7 @@ mod tests {
     #[test]
     fn test_regex_no_catastrophic_backtracking() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"(a+)+$".to_string(),
             replace: "X".to_string(),
@@ -518,6 +578,7 @@ mod tests {
     #[test]
     fn test_replacement_with_control_chars() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "placeholder".to_string(),
             replace: "\x07bell\x1bescape\x00nul".to_string(),
@@ -539,6 +600,7 @@ mod tests {
     #[test]
     fn test_empty_regex_match_does_not_panic() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"(?:)".to_string(),
             replace: "X".to_string(),
@@ -569,6 +631,7 @@ mod proptests {
             text in "[a-zA-Z0-9 ]{0,60}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: pattern.clone(),
                 replace: "".into(),
@@ -589,6 +652,7 @@ mod proptests {
             replacement in "[a-zA-Z0-9]{0,6}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: pattern.clone(),
                 replace: replacement.clone(),
@@ -610,6 +674,7 @@ mod proptests {
             text in "[a-zA-Z0-9 ]{0,50}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: pattern.clone(),
                 replace: pattern.clone(),
@@ -633,6 +698,7 @@ mod proptests {
             text in "[a-zA-Z]{0,30}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: pattern.clone(),
                 replace: String::new(),
@@ -657,6 +723,7 @@ mod proptests {
             replacement in ".{0,8}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: pattern.clone(),
                 replace: replacement.clone(),
@@ -681,6 +748,7 @@ mod proptests {
     #[test]
     fn test_find_replacements_literal_spans() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "ab".to_string(),
             replace: "X".to_string(),
@@ -698,6 +766,7 @@ mod proptests {
     #[test]
     fn test_find_replacements_regex_capture_expansion() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: r"(\d+)-(\d+)".to_string(),
             replace: "$2-$1".to_string(),
@@ -714,6 +783,7 @@ mod proptests {
     #[test]
     fn test_find_replacements_across_newlines() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: true,
             find: "a\nb".to_string(),
             replace: "ab".to_string(),
@@ -727,8 +797,59 @@ mod proptests {
     }
 
     #[test]
+    fn test_replace_n_literal_limits_and_counts() {
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "a".to_string(),
+            replace: "B".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let m = Matcher::new(&op).unwrap();
+        assert_eq!(m.replace_n("a a a", "B", 2), Some(("B B a".to_string(), 2)));
+        assert_eq!(m.replace_n("a a a", "B", 0), Some(("B B B".to_string(), 3)));
+        // Limit above occurrence count replaces them all and reports the truth.
+        assert_eq!(m.replace_n("a a", "B", 9), Some(("B B".to_string(), 2)));
+        assert_eq!(m.replace_n("zzz", "B", 1), None);
+    }
+
+    #[test]
+    fn test_replace_n_regex_limits_and_expansion() {
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: r"(\d)".to_string(),
+            replace: "[$1]".to_string(),
+            regex: true,
+            case_insensitive: false,
+        };
+        let m = Matcher::new(&op).unwrap();
+        assert_eq!(
+            m.replace_n("1 2 3", "[$1]", 2),
+            Some(("[1] [2] 3".to_string(), 2))
+        );
+    }
+
+    #[test]
+    fn test_replace_n_unlimited_matches_replace() {
+        let op = Op::Replace {
+            count: Default::default(),
+            multiline: false,
+            find: "ab".to_string(),
+            replace: "X".to_string(),
+            regex: false,
+            case_insensitive: false,
+        };
+        let m = Matcher::new(&op).unwrap();
+        let (text, _) = m.replace_n("ab ab ab", "X", 0).unwrap();
+        assert_eq!(text, m.replace("ab ab ab", "X").unwrap());
+    }
+
+    #[test]
     fn test_find_replacements_no_match_is_empty() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "zzz".to_string(),
             replace: "x".to_string(),

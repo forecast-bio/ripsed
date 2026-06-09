@@ -14,6 +14,7 @@ fuzz_target!(|data: &[u8]| {
     // Build an Op::Replace with regex=true so that Matcher::new attempts
     // to compile the fuzzed pattern as a regex.
     let op = Op::Replace {
+        count: Default::default(),
         find: pattern.to_string(),
         replace: String::new(),
         regex: true,

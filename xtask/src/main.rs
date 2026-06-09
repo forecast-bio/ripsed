@@ -87,6 +87,19 @@ fn gen_schema() {
                         "default": false,
                         "description": "Match across line boundaries against the whole buffer (replace and delete only)."
                     },
+                    "count": {
+                        "default": "all",
+                        "description": "How many occurrences to replace (replace only): 'all', 'first_per_line', 'first_in_file', or {\"max\": n}.",
+                        "oneOf": [
+                            {"type": "string", "enum": ["all", "first_per_line", "first_in_file"]},
+                            {
+                                "type": "object",
+                                "required": ["max"],
+                                "properties": {"max": {"type": "integer", "minimum": 1}},
+                                "additionalProperties": false
+                            }
+                        ]
+                    },
                     "glob": {
                         "type": "string",
                         "description": "Per-operation file glob (overrides options.glob)."

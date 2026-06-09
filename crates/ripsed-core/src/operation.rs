@@ -40,6 +40,26 @@ impl std::str::FromStr for TransformMode {
     }
 }
 
+/// How many occurrences a Replace operation substitutes.
+///
+/// Wire format (externally tagged): unit variants serialize as plain
+/// strings (`"all"`, `"first_per_line"`, `"first_in_file"`), the capped
+/// variant as an object (`{"max": 3}`, counting occurrences per file).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ReplaceCount {
+    /// Replace every occurrence (sed `s///g`, the default).
+    #[default]
+    All,
+    /// Replace only the first occurrence on each matching line (sed `s///`).
+    FirstPerLine,
+    /// Replace only the first occurrence in the file, then stop.
+    FirstInFile,
+    /// Replace at most N occurrences in the file, then stop.
+    Max(usize),
+}
+
 /// The intermediate representation for all ripsed operations.
 /// Both CLI args and JSON requests are normalized into this form.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -57,6 +77,9 @@ pub enum Op {
         /// patterns to span line boundaries (like ripgrep's `-U`).
         #[serde(default)]
         multiline: bool,
+        /// How many occurrences to replace (default: all).
+        #[serde(default)]
+        count: ReplaceCount,
     },
     Delete {
         find: String,
@@ -279,6 +302,7 @@ mod tests {
     #[test]
     fn replace_op_tag_wire_format() {
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "foo".into(),
             replace: "bar".into(),
@@ -307,6 +331,58 @@ mod tests {
         let op: Op =
             serde_json::from_str(r#"{"op": "delete", "find": "a", "multiline": true}"#).unwrap();
         assert!(op.is_multiline());
+    }
+
+    #[test]
+    fn replace_count_wire_format() {
+        // Unit variants are plain strings, Max is an object — agents
+        // depend on these exact spellings.
+        let op: Op = serde_json::from_str(
+            r#"{"op": "replace", "find": "a", "replace": "b", "count": "first_per_line"}"#,
+        )
+        .unwrap();
+        assert!(matches!(
+            op,
+            Op::Replace {
+                count: ReplaceCount::FirstPerLine,
+                ..
+            }
+        ));
+
+        let op: Op = serde_json::from_str(
+            r#"{"op": "replace", "find": "a", "replace": "b", "count": {"max": 3}}"#,
+        )
+        .unwrap();
+        assert!(matches!(
+            op,
+            Op::Replace {
+                count: ReplaceCount::Max(3),
+                ..
+            }
+        ));
+
+        // Omitted -> All (back-compat).
+        let op: Op =
+            serde_json::from_str(r#"{"op": "replace", "find": "a", "replace": "b"}"#).unwrap();
+        assert!(matches!(
+            op,
+            Op::Replace {
+                count: ReplaceCount::All,
+                ..
+            }
+        ));
+
+        // Serialization side of the contract.
+        let json = serde_json::to_value(&Op::Replace {
+            find: "a".into(),
+            replace: "b".into(),
+            regex: false,
+            case_insensitive: false,
+            multiline: false,
+            count: ReplaceCount::FirstInFile,
+        })
+        .unwrap();
+        assert_eq!(json["count"], "first_in_file");
     }
 
     #[test]

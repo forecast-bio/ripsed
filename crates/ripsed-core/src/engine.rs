@@ -1,7 +1,7 @@
 use crate::diff::{Change, ChangeContext, FileChanges, OpResult};
 use crate::error::RipsedError;
 use crate::matcher::{MatchSpan, Matcher};
-use crate::operation::{LineRange, Op, TransformMode};
+use crate::operation::{LineRange, Op, ReplaceCount, TransformMode};
 use crate::undo::UndoEntry;
 
 /// The result of applying operations to a text buffer.
@@ -72,9 +72,26 @@ impl LineCtx<'_> {
     }
 }
 
-/// Handle `Op::Replace` — substitute matched text within the line.
-fn apply_replace(cx: &LineCtx, replace: &str) -> LineAction {
-    if let Some(replaced) = cx.matcher.replace(cx.line, replace) {
+/// Handle `Op::Replace` — substitute matched text within the line,
+/// honoring the operation's [`ReplaceCount`] via the shared `budget`
+/// (remaining file-wide occurrences for `FirstInFile`/`Max`, `None`
+/// when unlimited).
+fn apply_replace(
+    cx: &LineCtx,
+    replace: &str,
+    count: ReplaceCount,
+    budget: &mut Option<usize>,
+) -> LineAction {
+    let line_limit = match (count, budget.as_ref()) {
+        (ReplaceCount::FirstPerLine, _) => 1,
+        (_, Some(0)) => return LineAction::Unchanged, // budget exhausted
+        (_, Some(remaining)) => *remaining,
+        (_, None) => 0, // unlimited
+    };
+    if let Some((replaced, occurrences)) = cx.matcher.replace_n(cx.line, replace, line_limit) {
+        if let Some(remaining) = budget {
+            *remaining = remaining.saturating_sub(occurrences);
+        }
         LineAction::Replaced {
             new_line: replaced.clone(),
             change: Change {
@@ -86,6 +103,19 @@ fn apply_replace(cx: &LineCtx, replace: &str) -> LineAction {
         }
     } else {
         LineAction::Unchanged
+    }
+}
+
+/// Initial file-wide occurrence budget for a Replace's [`ReplaceCount`]
+/// (`None` = unlimited; per-line caps are handled in [`apply_replace`]).
+fn replace_budget(op: &Op) -> Option<usize> {
+    match op {
+        Op::Replace { count, .. } => match count {
+            ReplaceCount::All | ReplaceCount::FirstPerLine => None,
+            ReplaceCount::FirstInFile => Some(1),
+            ReplaceCount::Max(n) => Some(*n),
+        },
+        _ => None,
     }
 }
 
@@ -267,6 +297,18 @@ pub fn apply(
                 "multiline patterns match against the whole buffer; remove the line range or the multiline flag",
             ));
         }
+        if matches!(
+            op,
+            Op::Replace {
+                count: ReplaceCount::FirstPerLine,
+                ..
+            }
+        ) {
+            return Err(RipsedError::invalid_request(
+                "first_per_line count is not supported in multiline mode",
+                "per-line counting has no meaning when matching the whole buffer; use first_in_file or {\"max\": n} instead",
+            ));
+        }
         return Ok(apply_multiline(text, op, matcher, context_lines));
     }
 
@@ -275,6 +317,7 @@ pub fn apply(
     let lines: Vec<&str> = text.lines().collect();
     let mut result_lines: Vec<String> = Vec::with_capacity(lines.len());
     let mut changes: Vec<Change> = Vec::new();
+    let mut budget = replace_budget(op);
 
     for (idx, &line) in lines.iter().enumerate() {
         let line_num = idx + 1; // 1-indexed
@@ -298,7 +341,7 @@ pub fn apply(
         };
 
         let action = match op {
-            Op::Replace { replace, .. } => apply_replace(&cx, replace),
+            Op::Replace { replace, count, .. } => apply_replace(&cx, replace, *count, &mut budget),
             Op::Delete { .. } => apply_delete(&cx),
             Op::InsertAfter { content, .. } => apply_insert_after(&cx, content),
             Op::InsertBefore { content, .. } => apply_insert_before(&cx, content),
@@ -481,7 +524,12 @@ fn apply_multiline(text: &str, op: &Op, matcher: &Matcher, context_lines: usize)
         _ => ("", true),
     };
 
-    let spans = matcher.find_replacements(text, replacement);
+    let mut spans = matcher.find_replacements(text, replacement);
+    // FirstPerLine is rejected before dispatch; FirstInFile and Max
+    // simply truncate the span list (occurrence-counted).
+    if let Some(limit) = replace_budget(op) {
+        spans.truncate(limit);
+    }
     if spans.is_empty() {
         return EngineOutput {
             text: None,
@@ -595,6 +643,7 @@ mod tests {
     fn test_simple_replace() {
         let text = "hello world\nfoo bar\nhello again\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -625,6 +674,7 @@ mod tests {
     fn test_no_changes() {
         let text = "nothing matches here\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "zzz".to_string(),
             replace: "aaa".to_string(),
@@ -641,6 +691,7 @@ mod tests {
     fn test_line_range() {
         let text = "line1\nline2\nline3\nline4\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "line".to_string(),
             replace: "row".to_string(),
@@ -664,6 +715,7 @@ mod tests {
     fn test_crlf_replace_preserves_crlf() {
         let text = "hello world\r\nfoo bar\r\nhello again\r\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -693,6 +745,7 @@ mod tests {
     fn test_crlf_no_trailing_newline() {
         let text = "hello world\r\nfoo bar";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -775,6 +828,7 @@ mod tests {
 
     fn multiline_replace_op(find: &str, replace: &str, regex: bool) -> Op {
         Op::Replace {
+            count: Default::default(),
             find: find.to_string(),
             replace: replace.to_string(),
             regex,
@@ -947,6 +1001,137 @@ mod tests {
         assert_eq!(ctx.after, vec!["ctx3".to_string()]);
     }
 
+    // ── Replacement count control ──
+
+    fn counted_replace_op(find: &str, replace: &str, count: ReplaceCount) -> Op {
+        Op::Replace {
+            find: find.to_string(),
+            replace: replace.to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: false,
+            count,
+        }
+    }
+
+    #[test]
+    fn test_count_first_per_line_replaces_one_per_line() {
+        let text = "a a a\nx\na a\n";
+        let op = counted_replace_op("a", "B", ReplaceCount::FirstPerLine);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B a a\nx\nB a\n");
+        assert_eq!(result.changes.len(), 2);
+    }
+
+    #[test]
+    fn test_count_first_in_file_replaces_only_first_occurrence() {
+        let text = "a a\na\na\n";
+        let op = counted_replace_op("a", "B", ReplaceCount::FirstInFile);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B a\na\na\n");
+        assert_eq!(result.changes.len(), 1);
+        assert_eq!(result.changes[0].line, 1);
+    }
+
+    #[test]
+    fn test_count_max_spans_lines_and_counts_occurrences() {
+        // Budget of 3 occurrences: line 1 consumes 2, line 2 consumes the
+        // last 1 (partial line), line 3 is untouched.
+        let text = "a a\na a\na\n";
+        let op = counted_replace_op("a", "B", ReplaceCount::Max(3));
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B B\nB a\na\n");
+        assert_eq!(result.changes.len(), 2);
+    }
+
+    #[test]
+    fn test_count_all_is_default_behavior() {
+        let text = "a a\na\n";
+        let op = counted_replace_op("a", "B", ReplaceCount::All);
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B B\nB\n");
+    }
+
+    #[test]
+    fn test_count_first_per_line_with_regex_captures() {
+        let text = "x1 x2 x3\n";
+        let op = Op::Replace {
+            find: r"x(\d)".to_string(),
+            replace: "y$1".to_string(),
+            regex: true,
+            case_insensitive: false,
+            multiline: false,
+            count: ReplaceCount::FirstPerLine,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "y1 x2 x3\n");
+    }
+
+    #[test]
+    fn test_count_max_in_multiline_mode_truncates_spans() {
+        let text = "a\na\na\n";
+        let op = Op::Replace {
+            find: "a\n".to_string(),
+            replace: "B\n".to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: true,
+            count: ReplaceCount::Max(2),
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B\nB\na\n");
+        assert_eq!(result.changes.len(), 2);
+    }
+
+    #[test]
+    fn test_count_first_in_file_in_multiline_mode() {
+        let text = "a\na\n";
+        let op = Op::Replace {
+            find: "a".to_string(),
+            replace: "B".to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: true,
+            count: ReplaceCount::FirstInFile,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B\na\n");
+    }
+
+    #[test]
+    fn test_count_first_per_line_rejected_in_multiline_mode() {
+        let op = Op::Replace {
+            find: "a".to_string(),
+            replace: "B".to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: true,
+            count: ReplaceCount::FirstPerLine,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let err = apply("a\n", &op, &matcher, None, 0).unwrap_err();
+        assert_eq!(err.code, crate::error::ErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn test_count_budget_exhausted_skips_remaining_lines() {
+        // Once the budget hits zero, later matching lines are untouched and
+        // produce no Change entries.
+        let text = "a\na\na\na\n";
+        let op = counted_replace_op("a", "B", ReplaceCount::Max(1));
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "B\na\na\na\n");
+        assert_eq!(result.changes.len(), 1);
+    }
+
     #[test]
     fn test_uses_crlf_detection() {
         assert!(uses_crlf("a\r\nb\r\n"));
@@ -964,6 +1149,7 @@ mod tests {
     fn test_empty_input_text() {
         let text = "";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "anything".to_string(),
             replace: "something".to_string(),
@@ -980,6 +1166,7 @@ mod tests {
     fn test_single_line_no_trailing_newline() {
         let text = "hello world";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -998,6 +1185,7 @@ mod tests {
     fn test_whitespace_only_lines() {
         let text = "  \n\t\n   \t  \n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "\t".to_string(),
             replace: "TAB".to_string(),
@@ -1016,6 +1204,7 @@ mod tests {
         let long_word = "x".repeat(100_000);
         let text = format!("before\n{long_word}\nafter\n");
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "x".to_string(),
             replace: "y".to_string(),
@@ -1033,6 +1222,7 @@ mod tests {
     fn test_unicode_emoji() {
         let text = "hello world\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "world".to_string(),
             replace: "\u{1F30D}".to_string(), // earth globe emoji
@@ -1048,6 +1238,7 @@ mod tests {
     fn test_unicode_cjk() {
         let text = "\u{4F60}\u{597D}\u{4E16}\u{754C}\n"; // "hello world" in Chinese
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "\u{4E16}\u{754C}".to_string(),    // "world"
             replace: "\u{5730}\u{7403}".to_string(), // "earth"
@@ -1064,6 +1255,7 @@ mod tests {
         // e + combining acute accent = e-acute
         let text = "caf\u{0065}\u{0301}\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "caf\u{0065}\u{0301}".to_string(),
             replace: "coffee".to_string(),
@@ -1080,6 +1272,7 @@ mod tests {
         // In literal mode, regex metacharacters should be treated as literals
         let text = "price is $10.00 (USD)\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "$10.00".to_string(),
             replace: "$20.00".to_string(),
@@ -1096,6 +1289,7 @@ mod tests {
         // "aaa" with pattern "aa" — standard str::replace does non-overlapping left-to-right
         let text = "aaa\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "aa".to_string(),
             replace: "b".to_string(),
@@ -1113,6 +1307,7 @@ mod tests {
         let text = "line1\nline2\nline3\nline4\nline5\n";
         let input_line_count = text.lines().count();
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "line".to_string(),
             replace: "row".to_string(),
@@ -1131,6 +1326,7 @@ mod tests {
         // Pattern that exists nowhere in text
         let text = "alpha\nbeta\ngamma\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "zzzzzz".to_string(),
             replace: "y".to_string(),
@@ -1147,6 +1343,7 @@ mod tests {
     fn test_undo_entry_stores_original() {
         let text = "hello\nworld\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "hello".to_string(),
             replace: "hi".to_string(),
@@ -1163,6 +1360,7 @@ mod tests {
     fn test_determinism_same_input_same_output() {
         let text = "foo bar baz\nhello world\nfoo again\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "foo".to_string(),
             replace: "qux".to_string(),
@@ -2139,6 +2337,7 @@ mod tests {
         // Line 4 = "delta" (CRLF)
         let text = "alpha\nbeta\r\ngamma match\ndelta\r\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "match".to_string(),
             replace: "HIT".to_string(),
@@ -2163,6 +2362,7 @@ mod tests {
     fn test_line_number_for_single_line_no_newline() {
         let text = "only line matches here";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "matches".to_string(),
             replace: "OK".to_string(),
@@ -2181,6 +2381,7 @@ mod tests {
     fn test_first_line_is_one_not_zero() {
         let text = "match first\nother\nother\n";
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "match".to_string(),
             replace: "X".to_string(),
@@ -2293,6 +2494,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: find.clone(),
                 replace: replace.clone(),
@@ -2318,6 +2520,7 @@ mod proptests {
             // Use a pattern with a NUL byte which will never appear in text generated
             // by arb_multiline_text
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: "\x00\x00NOMATCH\x00\x00".to_string(),
                 replace: "replacement".to_string(),
@@ -2339,6 +2542,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find,
                 replace,
@@ -2360,6 +2564,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find,
                 replace,
@@ -2546,6 +2751,7 @@ mod proptests {
             replace in "[a-zA-Z0-9]{0,8}",
         ) {
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find,
                 replace,
@@ -2664,6 +2870,7 @@ mod proptests {
                 "line {find} one\r\n{find} middle\r\nanother {find} here\r\nending\r\n"
             );
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: find.clone(),
                 replace,
@@ -2696,6 +2903,7 @@ mod proptests {
                 "head\n{find} one\nmiddle\n{find} two {find}\ntail\n"
             );
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find: find.clone(),
                 replace,
@@ -2723,6 +2931,7 @@ mod proptests {
             prop_assume!(!text.ends_with('\n'));
 
             let op = Op::Replace {
+                count: Default::default(),
                 multiline: false,
                 find,
                 replace,

@@ -41,6 +41,12 @@ ripsed -d 'console\.log'
 # Multiline: match across line boundaries (like rg -U)
 ripsed -U -e 'fn old\(\n\s*x: u32,\n\)' 'fn new(x: u32)'
 
+# Replace only the first occurrence per line (sed s/// without /g)
+ripsed --first 'foo' 'bar'
+
+# Cap total replacements per file
+ripsed --max-replacements 5 'foo' 'bar'
+
 # Insert text after matching lines
 ripsed 'use serde;' --after 'use serde_json;'
 
@@ -77,6 +83,9 @@ ARGS:
 OPTIONS:
     -e, --regex              Treat FIND as a regex
     -U, --multiline          Match across line boundaries (replace/delete only)
+        --first              Replace only the first occurrence per line
+        --first-in-file      Replace only the first occurrence in each file
+        --max-replacements <N>  Replace at most N occurrences per file
     -d, --delete             Delete matching lines
         --dry-run            Preview changes without writing
         --backup             Create .ripsed.bak files before modifying
@@ -193,6 +202,12 @@ Replace and delete additionally accept `"multiline": true` (CLI: `-U`) to
 match against the whole file instead of line-by-line, allowing patterns to
 span line boundaries. In multiline mode, delete removes the matched span
 rather than whole lines, and line ranges are not supported.
+
+Replace also accepts `"count"` to limit how many occurrences are replaced:
+`"all"` (default), `"first_per_line"` (CLI: `--first`), `"first_in_file"`
+(CLI: `--first-in-file`), or `{"max": n}` (CLI: `--max-replacements N`,
+counting occurrences per file). `first_per_line` cannot be combined with
+multiline mode.
 
 ### Error Handling
 

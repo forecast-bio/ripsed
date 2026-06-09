@@ -212,6 +212,92 @@ fn multiline_json_op_rejected_for_insert() {
 }
 
 #[test]
+fn first_flag_replaces_one_occurrence_per_line() {
+    let dir = setup_single_file("test.txt", "a a a\na a\n");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--first", "a", "B"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "B a a\nB a\n");
+}
+
+#[test]
+fn first_in_file_flag_replaces_single_occurrence() {
+    let dir = setup_single_file("test.txt", "a a\na\n");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--first-in-file", "a", "B"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "B a\na\n");
+}
+
+#[test]
+fn max_replacements_caps_occurrences_per_file() {
+    let dir = setup_single_file("test.txt", "a a\na a\n");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--max-replacements", "3", "a", "B"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "B B\nB a\n");
+}
+
+#[test]
+fn max_replacements_zero_is_rejected_by_clap() {
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--max-replacements", "0", "a", "B"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("at least 1"));
+}
+
+#[test]
+fn count_flags_conflict_with_each_other_and_delete() {
+    for args in [
+        vec!["--first", "--first-in-file", "a", "B"],
+        vec!["--first", "--max-replacements", "2", "a", "B"],
+        vec!["--first", "-U", "a", "B"],
+        vec!["--first", "-d", "a"],
+    ] {
+        assert_cmd::cargo_bin_cmd!("ripsed")
+            .args(&args)
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("cannot be used with"));
+    }
+}
+
+#[test]
+fn count_json_op_first_per_line() {
+    let dir = setup_files(&[("test.txt", "a a\na a\n")]);
+    let request = json_request(
+        r#"{"op": "replace", "find": "a", "replace": "B", "count": "first_per_line"}"#,
+        &format!(r#""dry_run": false, "root": "{}""#, json_path(&dir)),
+    );
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "B a\nB a\n");
+}
+
+#[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);
     let bin_path = dir.path().join("data.bin");

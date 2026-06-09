@@ -25,6 +25,7 @@ let op = Op::Replace {
     regex: false,
     case_insensitive: false,
     multiline: false,
+    count: Default::default(),
 };
 
 let matcher = Matcher::new(&op).unwrap();

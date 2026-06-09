@@ -18,6 +18,7 @@ fuzz_target!(|input: EngineInput| {
     // Build an Op::Replace from the fuzzed fields. `multiline` exercises
     // the whole-buffer span path as well as the per-line path.
     let op = Op::Replace {
+        count: Default::default(),
         find: input.find,
         replace: input.replace,
         regex: false,

@@ -26,6 +26,39 @@ pub struct Cli {
     )]
     pub multiline: bool,
 
+    /// Replace only the first occurrence on each matching line (sed s///)
+    #[arg(
+        long,
+        conflicts_with_all = [
+            "first_in_file", "max_replacements", "multiline", "delete",
+            "after", "before", "replace_line", "transform",
+            "surround", "indent", "dedent",
+        ]
+    )]
+    pub first: bool,
+
+    /// Replace only the first occurrence in each file
+    #[arg(
+        long,
+        conflicts_with_all = [
+            "max_replacements", "delete", "after", "before",
+            "replace_line", "transform", "surround", "indent", "dedent",
+        ]
+    )]
+    pub first_in_file: bool,
+
+    /// Replace at most N occurrences per file
+    #[arg(
+        long,
+        value_name = "N",
+        value_parser = parse_max_replacements,
+        conflicts_with_all = [
+            "delete", "after", "before", "replace_line",
+            "transform", "surround", "indent", "dedent",
+        ]
+    )]
+    pub max_replacements: Option<usize>,
+
     /// Delete matching lines
     #[arg(short = 'd', long)]
     pub delete: bool,
@@ -149,6 +182,15 @@ pub struct Cli {
 
 fn parse_transform_mode(s: &str) -> Result<TransformMode, String> {
     s.parse()
+}
+
+/// Parse --max-replacements: a positive occurrence cap.
+fn parse_max_replacements(s: &str) -> Result<usize, String> {
+    match s.parse::<usize>() {
+        Ok(0) => Err("max replacements must be at least 1".to_string()),
+        Ok(n) => Ok(n),
+        Err(_) => Err(format!("'{s}' is not a valid number")),
+    }
 }
 
 /// Parse a line range string in "N:M" format into a `LineRange`.

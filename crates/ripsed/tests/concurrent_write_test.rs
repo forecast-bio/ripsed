@@ -17,6 +17,7 @@ use std::thread;
 
 fn make_replace_op(find: &str, replace: &str) -> Op {
     Op::Replace {
+        count: Default::default(),
         multiline: false,
         find: find.to_string(),
         replace: replace.to_string(),

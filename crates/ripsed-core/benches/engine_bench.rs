@@ -22,6 +22,7 @@ fn bench_simple_replace(c: &mut Criterion) {
     for &size in &[100, 1_000, 10_000] {
         let text = generate_text(size);
         let op = Op::Replace {
+            count: Default::default(),
             multiline: false,
             find: "fox".to_string(),
             replace: "cat".to_string(),
@@ -44,6 +45,7 @@ fn bench_simple_replace(c: &mut Criterion) {
 fn bench_regex_replace_with_captures(c: &mut Criterion) {
     let text = generate_text(1_000);
     let op = Op::Replace {
+        count: Default::default(),
         multiline: false,
         find: r"(quick) (brown)".to_string(),
         replace: "$2 $1".to_string(),
@@ -81,6 +83,7 @@ fn bench_delete(c: &mut Criterion) {
 fn bench_case_insensitive_replace(c: &mut Criterion) {
     let text = generate_text(1_000);
     let op = Op::Replace {
+        count: Default::default(),
         multiline: false,
         find: "FOX".to_string(),
         replace: "cat".to_string(),
