@@ -31,7 +31,8 @@ pub fn handle_undo(count: usize, config: &Config) -> Result<(), i32> {
 
     for record in &records {
         let path = std::path::Path::new(&record.file_path);
-        match writer::write_atomic(path, &record.entry.original_text) {
+        let encoding = crate::shared::undo_record_encoding(record);
+        match writer::write_atomic_encoded(path, &record.entry.original_text, encoding) {
             Ok(()) => {
                 eprintln!("ripsed: restored {}", record.file_path);
             }
@@ -119,7 +120,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
             None
         };
 
-        let content = match reader::read_file(file_path) {
+        let (content, encoding) = match reader::read_file_with_encoding(file_path) {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("ripsed: {}: {e}", file_path.display());
@@ -178,10 +179,10 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
                 if let Some(ref mut log) = undo_log
                     && let Some(ref undo_entry) = output.undo
                 {
-                    record_undo(log, file_path, undo_entry);
+                    record_undo(log, file_path, undo_entry, encoding);
                 }
 
-                match writer::write_atomic(file_path, text) {
+                match writer::write_atomic_encoded(file_path, text, encoding) {
                     Ok(()) => files_modified += 1,
                     Err(e) => {
                         eprintln!("ripsed: write failed for {}: {e}", file_path.display());

@@ -2,6 +2,7 @@ use ripsed_core::config::Config;
 use ripsed_core::operation::OpOptions;
 use ripsed_core::undo::{UndoEntry, UndoLog, UndoRecord};
 use ripsed_fs::discovery::DiscoveryOptions;
+use ripsed_fs::encoding::SourceEncoding;
 use ripsed_fs::lock::FileLock;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -69,17 +70,36 @@ pub fn load_undo_log(config: &Config) -> UndoLog {
 }
 
 /// Record an undo entry in the log for a given file path.
-pub fn record_undo(log: &mut UndoLog, file_path: &Path, entry: &UndoEntry) {
+///
+/// `encoding` is the file's detected source encoding; plain UTF-8 is
+/// stored as `None` to keep the log format unchanged for the common case.
+pub fn record_undo(
+    log: &mut UndoLog,
+    file_path: &Path,
+    entry: &UndoEntry,
+    encoding: SourceEncoding,
+) {
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| format!("{}", d.as_secs()))
         .unwrap_or_else(|_| "0".to_string());
 
     log.push(UndoRecord {
+        encoding: (encoding != SourceEncoding::Utf8).then(|| encoding.tag().to_string()),
         timestamp,
         file_path: file_path.to_string_lossy().to_string(),
         entry: entry.clone(),
     });
+}
+
+/// The source encoding to restore an undo record with (tag parse, with
+/// plain UTF-8 for absent or unknown tags).
+pub fn undo_record_encoding(record: &UndoRecord) -> SourceEncoding {
+    record
+        .encoding
+        .as_deref()
+        .and_then(SourceEncoding::from_tag)
+        .unwrap_or_default()
 }
 
 /// Build OpOptions from CLI args and config, consolidating the shared logic

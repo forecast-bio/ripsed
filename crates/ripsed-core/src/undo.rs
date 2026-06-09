@@ -14,6 +14,11 @@ pub struct UndoRecord {
     pub timestamp: String,
     pub file_path: String,
     pub entry: UndoEntry,
+    /// Source-encoding tag of the file when it was read (e.g. `"utf-16le"`).
+    /// `None` (and absent in pre-existing logs) means plain UTF-8. Restoring
+    /// re-encodes `original_text` with this so undo is byte-exact.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encoding: Option<String>,
 }
 
 /// Manages the undo log.
@@ -97,6 +102,7 @@ mod tests {
     fn test_push_and_pop() {
         let mut log = UndoLog::new(100);
         log.push(UndoRecord {
+            encoding: None,
             timestamp: "2026-01-01T00:00:00Z".to_string(),
             file_path: "test.txt".to_string(),
             entry: UndoEntry {
@@ -115,6 +121,7 @@ mod tests {
         let mut log = UndoLog::new(2);
         for i in 0..5 {
             log.push(UndoRecord {
+                encoding: None,
                 timestamp: format!("2026-01-0{i}T00:00:00Z"),
                 file_path: format!("file{i}.txt"),
                 entry: UndoEntry {
@@ -129,6 +136,7 @@ mod tests {
     fn test_jsonl_roundtrip() {
         let mut log = UndoLog::new(100);
         log.push(UndoRecord {
+            encoding: None,
             timestamp: "2026-01-01T00:00:00Z".to_string(),
             file_path: "test.txt".to_string(),
             entry: UndoEntry {
@@ -144,6 +152,7 @@ mod tests {
 
     fn record(path: &str, text: &str) -> UndoRecord {
         UndoRecord {
+            encoding: None,
             timestamp: "2026-01-01T00:00:00Z".to_string(),
             file_path: path.to_string(),
             entry: UndoEntry {

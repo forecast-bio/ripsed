@@ -6,7 +6,9 @@ Designed for humans **and** machines — with first-class JSON support for AI co
 
 ## Features
 
-- **Sensible defaults.** Recursive, `.gitignore`-aware, UTF-8. No flags needed for the common case.
+- **Sensible defaults.** Recursive, `.gitignore`-aware, UTF-8 plus
+  BOM-detected UTF-16 (files keep their encoding and BOM across edits).
+  No flags needed for the common case.
 - **No escape hell.** Standard Rust regex syntax. No sed-style delimiters.
 - **Agent-native.** Structured JSON I/O as a first-class interface, not an afterthought.
 - **Safe by default.** Dry-run previews, atomic writes, undo log, backup files.

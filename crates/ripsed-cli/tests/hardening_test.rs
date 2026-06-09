@@ -409,6 +409,156 @@ fn json_rejects_both_line_range_and_pattern_range() {
     assert_eq!(resp["errors"][0]["code"], "invalid_request");
 }
 
+// ── Encoding: BOM detection and UTF-16 transcoding ──
+
+#[test]
+fn utf16le_file_roundtrips_encoding_and_bom() {
+    use ripsed_fs::encoding::{SourceEncoding, encode};
+
+    let dir = setup_files(&[]);
+    let path = dir.path().join("wide.txt");
+    fs::write(
+        &path,
+        encode("hello world\nsecond line\n", SourceEncoding::Utf16Le),
+    )
+    .unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["hello", "goodbye"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let bytes = fs::read(&path).unwrap();
+    assert_eq!(
+        bytes,
+        encode("goodbye world\nsecond line\n", SourceEncoding::Utf16Le),
+        "file must stay UTF-16LE with BOM, content replaced"
+    );
+}
+
+#[test]
+fn utf16be_file_roundtrips_encoding_and_bom() {
+    use ripsed_fs::encoding::{SourceEncoding, encode};
+
+    let dir = setup_files(&[]);
+    let path = dir.path().join("wide-be.txt");
+    fs::write(&path, encode("ünïcode hello 🎉\n", SourceEncoding::Utf16Be)).unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["hello", "goodbye"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let bytes = fs::read(&path).unwrap();
+    assert_eq!(
+        bytes,
+        encode("ünïcode goodbye 🎉\n", SourceEncoding::Utf16Be)
+    );
+}
+
+#[test]
+fn utf8_bom_preserved_and_not_treated_as_content() {
+    use ripsed_fs::encoding::UTF8_BOM;
+
+    let dir = setup_files(&[]);
+    let path = dir.path().join("bom.txt");
+    let mut bytes = UTF8_BOM.to_vec();
+    bytes.extend_from_slice(b"hello world\n");
+    fs::write(&path, &bytes).unwrap();
+
+    // Anchored regex must match at the real start of line 1 — i.e. the BOM
+    // is stripped before matching, not left as invisible content.
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["-e", "^hello", "goodbye"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let out = fs::read(&path).unwrap();
+    let mut expected = UTF8_BOM.to_vec();
+    expected.extend_from_slice(b"goodbye world\n");
+    assert_eq!(out, expected, "BOM re-attached, anchor matched after it");
+}
+
+#[test]
+fn mixed_encoding_tree_all_files_replaced() {
+    use ripsed_fs::encoding::{SourceEncoding, encode};
+
+    let dir = setup_files(&[("plain.txt", "hello\n")]);
+    fs::write(
+        dir.path().join("wide.txt"),
+        encode("hello\n", SourceEncoding::Utf16Le),
+    )
+    .unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["hello", "goodbye"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("plain.txt")).unwrap(),
+        "goodbye\n"
+    );
+    assert_eq!(
+        fs::read(dir.path().join("wide.txt")).unwrap(),
+        encode("goodbye\n", SourceEncoding::Utf16Le)
+    );
+}
+
+#[test]
+fn undo_restores_utf16_file_byte_exact() {
+    use ripsed_fs::encoding::{SourceEncoding, encode};
+
+    let dir = setup_files(&[]);
+    let path = dir.path().join("wide.txt");
+    let original = encode("hello world\n", SourceEncoding::Utf16Le);
+    fs::write(&path, &original).unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["hello", "goodbye"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+    assert_ne!(fs::read(&path).unwrap(), original, "edit landed");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--undo"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read(&path).unwrap(),
+        original,
+        "undo must restore the original bytes exactly, including BOM and encoding"
+    );
+}
+
+#[test]
+fn truncated_utf16_file_fails_cleanly() {
+    let dir = setup_files(&[("good.txt", "hello\n")]);
+    // UTF-16LE BOM followed by an odd number of payload bytes.
+    fs::write(dir.path().join("bad.txt"), [0xFF, 0xFE, 0x68, 0x00, 0x65]).unwrap();
+
+    // The malformed file is reported and skipped; the good file still
+    // gets modified.
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["hello", "goodbye"])
+        .current_dir(dir.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("truncated"));
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("good.txt")).unwrap(),
+        "goodbye\n"
+    );
+}
+
 #[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);

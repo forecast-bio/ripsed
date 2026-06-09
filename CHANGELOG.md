@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Encoding support (#95): BOM-based detection of UTF-8-with-BOM and
+  UTF-16 LE/BE. UTF-16 files — previously skipped as binary because
+  of their NUL bytes — are now discovered, edited, and written back
+  in their original encoding with the BOM re-attached; UTF-8 BOMs are
+  stripped before matching (so `^` anchors work on line 1) and
+  restored on write. The undo log stores an encoding tag so undo
+  restores original bytes exactly (older logs read fine; absent tag
+  means UTF-8). Truncated UTF-16 and unpaired surrogates are clean
+  per-file errors, never panics. No new dependencies — std covers
+  both UTF-16 directions. UTF-16 without a BOM remains out of scope
+  (indistinguishable from binary by a cheap check).
 - Pattern-based line ranges (#94): CLI `--range '/start/,/end/'` and
   JSON `options.range` (`{"start_pattern", "end_pattern"}`) scope
   operations to sed-style pattern-addressed regions — regexes, regions

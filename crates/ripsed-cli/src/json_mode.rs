@@ -4,6 +4,7 @@ use ripsed_core::engine;
 use ripsed_core::error::RipsedError;
 use ripsed_core::matcher::Matcher;
 use ripsed_fs::discovery::discover_files;
+use ripsed_fs::encoding::SourceEncoding;
 use ripsed_fs::lock::FileLock;
 use ripsed_fs::reader;
 use ripsed_fs::writer;
@@ -50,15 +51,17 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
     let mut results = Vec::new();
     let mut errors = Vec::new();
 
-    // Content cache: subsequent operations see the output of previous ones
-    let mut content_cache: HashMap<PathBuf, String> = HashMap::new();
+    // Content cache: subsequent operations see the output of previous ones.
+    // Carries the source encoding detected on first read so the final
+    // write re-encodes correctly.
+    let mut content_cache: HashMap<PathBuf, (String, SourceEncoding)> = HashMap::new();
 
     // Advisory locks held from first read of each file through final write.
     // Prevents concurrent ripsed processes from clobbering each other.
     let mut file_locks: HashMap<PathBuf, FileLock> = HashMap::new();
 
     // For atomic batch mode, collect all writes to apply at once
-    let mut pending_writes: Vec<(std::path::PathBuf, String)> = Vec::new();
+    let mut pending_writes: Vec<(std::path::PathBuf, String, SourceEncoding)> = Vec::new();
 
     // Load undo log for recording changes (only when not dry-run)
     let mut undo_log = if !dry_run {
@@ -121,10 +124,10 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
             }
 
             // Use cached content if a prior operation already modified this file
-            let content = if let Some(cached) = content_cache.get(file_path) {
+            let (content, encoding) = if let Some(cached) = content_cache.get(file_path) {
                 cached.clone()
             } else {
-                match reader::read_file(file_path) {
+                match reader::read_file_with_encoding(file_path) {
                     Ok(c) => c,
                     Err(e) => {
                         let path_str = file_path.to_string_lossy();
@@ -148,7 +151,7 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
 
             // Update cache so subsequent operations see modified content
             if let Some(ref text) = output.text {
-                content_cache.insert(file_path.clone(), text.clone());
+                content_cache.insert(file_path.clone(), (text.clone(), encoding));
             }
 
             if !output.changes.is_empty() {
@@ -173,7 +176,7 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
                     if let Some(ref mut log) = undo_log
                         && let Some(ref undo_entry) = output.undo
                     {
-                        record_undo(log, file_path, undo_entry);
+                        record_undo(log, file_path, undo_entry, encoding);
                     }
 
                     if backup && let Err(e) = writer::create_backup(file_path) {
@@ -186,8 +189,8 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
 
                     if atomic {
                         // Collect for batch write
-                        pending_writes.push((file_path.clone(), text.clone()));
-                    } else if writer::write_atomic(file_path, text).is_ok() {
+                        pending_writes.push((file_path.clone(), text.clone(), encoding));
+                    } else if writer::write_atomic_encoded(file_path, text, encoding).is_ok() {
                         summary.files_modified += 1;
                     }
                 }
@@ -197,11 +200,19 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
 
     // Commit atomic batch if needed
     if atomic && !pending_writes.is_empty() {
-        let batch_refs: Vec<(&Path, &str)> = pending_writes
-            .iter()
-            .map(|(p, c)| (p.as_path(), c.as_str()))
-            .collect();
-        match writer::write_atomic_batch(&batch_refs) {
+        let mut batch = writer::AtomicBatch::new();
+        let mut stage_err = None;
+        for (path, content, encoding) in &pending_writes {
+            if let Err(e) = batch.stage_encoded(path, content, *encoding) {
+                stage_err = Some(e);
+                break;
+            }
+        }
+        let commit_result = match stage_err {
+            Some(e) => Err(e),
+            None => batch.commit(),
+        };
+        match commit_result {
             Ok(()) => {
                 summary.files_modified += pending_writes.len();
             }
@@ -257,7 +268,8 @@ fn handle_json_undo(count: usize, config: &Config) {
 
     for record in &records {
         let path = Path::new(&record.file_path);
-        if writer::write_atomic(path, &record.entry.original_text).is_ok() {
+        let encoding = crate::shared::undo_record_encoding(record);
+        if writer::write_atomic_encoded(path, &record.entry.original_text, encoding).is_ok() {
             files_restored += 1;
         }
     }
@@ -312,6 +324,7 @@ mod tests {
 
         let mut log = ripsed_core::undo::UndoLog::new(100);
         log.push(UndoRecord {
+            encoding: None,
             timestamp: "12345".to_string(),
             file_path: file_path.to_string_lossy().to_string(),
             entry: ripsed_core::undo::UndoEntry {
@@ -434,6 +447,7 @@ mod tests {
         let mut log = ripsed_core::undo::UndoLog::new(config.undo.max_entries);
 
         log.push(UndoRecord {
+            encoding: None,
             timestamp: "999".to_string(),
             file_path: "/tmp/test_json_undo.txt".to_string(),
             entry: ripsed_core::undo::UndoEntry {

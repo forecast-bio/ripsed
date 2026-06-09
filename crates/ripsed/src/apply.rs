@@ -68,7 +68,8 @@ pub fn apply_to_file(
         None
     };
 
-    let content = reader::read_file(path).map_err(|e| ApplyError::Read(path.to_path_buf(), e))?;
+    let (content, encoding) = reader::read_file_with_encoding(path)
+        .map_err(|e| ApplyError::Read(path.to_path_buf(), e))?;
 
     let matcher = Matcher::new(op).map_err(ApplyError::Engine)?;
 
@@ -86,7 +87,7 @@ pub fn apply_to_file(
             writer::create_backup(path).map_err(|e| ApplyError::Backup(path.to_path_buf(), e))?;
         }
         if let Some(ref text) = output.text {
-            writer::write_atomic(path, text)
+            writer::write_atomic_encoded(path, text, encoding)
                 .map_err(|e| ApplyError::Write(path.to_path_buf(), e))?;
         }
     }

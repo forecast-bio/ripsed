@@ -1,3 +1,4 @@
+use crate::encoding::{self, SourceEncoding};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -5,14 +6,28 @@ use tempfile::NamedTempFile;
 
 /// Write content to a file atomically using a temporary file + rename.
 ///
+/// Writes plain UTF-8 with no BOM. When the content came from
+/// [`crate::reader::read_file_with_encoding`], use [`write_atomic_encoded`]
+/// instead so the file keeps its original encoding.
+///
 /// This is a low-level primitive that does **not** acquire a file lock.
 /// For concurrent safety, callers should acquire a [`crate::lock::FileLock`]
 /// before reading the file and hold it through this write. The `ripsed`
 /// facade crate provides [`ripsed::apply_to_file`] which handles this.
 pub fn write_atomic(path: &Path, content: &str) -> std::io::Result<()> {
+    write_atomic_encoded(path, content, SourceEncoding::Utf8)
+}
+
+/// Write content to a file atomically, encoded as `encoding` (re-attaching
+/// the BOM that was present on read). See [`write_atomic`] for locking.
+pub fn write_atomic_encoded(
+    path: &Path,
+    content: &str,
+    encoding: SourceEncoding,
+) -> std::io::Result<()> {
     let parent = path.parent().unwrap_or(Path::new("."));
     let mut tmp = NamedTempFile::new_in(parent)?;
-    tmp.write_all(content.as_bytes())?;
+    tmp.write_all(&encoding::encode(content, encoding))?;
     tmp.flush()?;
 
     // Preserve original file permissions if possible
@@ -90,9 +105,19 @@ impl AtomicBatch {
 
     /// Stage a file write. The content is written to a temp file but not yet committed.
     pub fn stage(&mut self, path: &Path, content: &str) -> std::io::Result<()> {
+        self.stage_encoded(path, content, SourceEncoding::Utf8)
+    }
+
+    /// Stage a file write in the given encoding (see [`write_atomic_encoded`]).
+    pub fn stage_encoded(
+        &mut self,
+        path: &Path,
+        content: &str,
+        encoding: SourceEncoding,
+    ) -> std::io::Result<()> {
         let parent = path.parent().unwrap_or(Path::new("."));
         let mut tmp = NamedTempFile::new_in(parent)?;
-        tmp.write_all(content.as_bytes())?;
+        tmp.write_all(&encoding::encode(content, encoding))?;
         tmp.flush()?;
 
         if let Ok(metadata) = fs::metadata(path) {

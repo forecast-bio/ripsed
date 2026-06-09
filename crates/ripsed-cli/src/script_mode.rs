@@ -94,7 +94,7 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
                 }
             }
 
-            let content = match reader::read_file(file_path) {
+            let (content, encoding) = match reader::read_file_with_encoding(file_path) {
                 Ok(c) => c,
                 Err(e) => {
                     eprintln!("ripsed: {}: {e}", file_path.display());
@@ -135,10 +135,10 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
                     if let Some(ref mut log) = undo_log
                         && let Some(ref undo_entry) = output.undo
                     {
-                        record_undo(log, file_path, undo_entry);
+                        record_undo(log, file_path, undo_entry, encoding);
                     }
 
-                    match writer::write_atomic(file_path, text) {
+                    match writer::write_atomic_encoded(file_path, text, encoding) {
                         Ok(()) => {
                             files_modified_set.insert(file_path.clone());
                         }
