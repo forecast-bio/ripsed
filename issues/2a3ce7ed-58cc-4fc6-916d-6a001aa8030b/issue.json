@@ -1,0 +1,10 @@
+{
+  "uuid": "2a3ce7ed-58cc-4fc6-916d-6a001aa8030b",
+  "display_id": 97,
+  "title": "Parallelize file application with rayon in file and script modes",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:21:47.120858102Z",
+  "updated_at": "2026-06-09T20:21:47.120858102Z"
+}
