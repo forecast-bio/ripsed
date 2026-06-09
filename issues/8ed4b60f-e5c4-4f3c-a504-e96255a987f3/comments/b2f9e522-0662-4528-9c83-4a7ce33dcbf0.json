@@ -1,0 +1,10 @@
+{
+  "uuid": "b2f9e522-0662-4528-9c83-4a7ce33dcbf0",
+  "issue_uuid": "8ed4b60f-e5c4-4f3c-a504-e96255a987f3",
+  "author": "w3Lb",
+  "content": "Delivered in commit 60ce879. line_sep is now computed once at the top of apply(), threaded through LineCtx, and used both for the final join and for composing Change.after in apply_insert_after/apply_insert_before (previously hardcoded \\n). Three regression tests added: CRLF InsertAfter and InsertBefore assert Change.after equals the exact CRLF bytes and appears verbatim in the output text; an LF guard test locks the default. Verified: 23 workspace test suites green, clippy -D warnings clean, fmt clean. CHANGELOG entry hand-written under Unreleased/Fixed.",
+  "created_at": "2026-06-09T20:01:55.926731421Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA6mdZw9lGqlEL0qbeAZE3tLsa9iOhzcqRLlgAE6lVmoJLK7AWTkrmlCHD/isFCBoUjoUVICnq17C32mi/kGM9Bw=="
+}
