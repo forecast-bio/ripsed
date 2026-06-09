@@ -1,0 +1,10 @@
+{
+  "uuid": "d5aeb4d5-54bc-4540-b6dc-d1f4a251de80",
+  "display_id": 94,
+  "title": "Add pattern-based line ranges: --range '/start/,/end/' addressing",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:20:17.859603184Z",
+  "updated_at": "2026-06-09T20:20:17.859603184Z"
+}
