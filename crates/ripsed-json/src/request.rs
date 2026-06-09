@@ -26,6 +26,12 @@ pub struct JsonOp {
     pub op: Op,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub glob: Option<String>,
+    /// Every op field as raw JSON (serde's flatten buffering copies ALL
+    /// keys here, including ones `Op` consumed — not just leftovers).
+    /// Used by validation to detect fields that an op variant silently
+    /// dropped, e.g. `multiline` on a line-scoped operation.
+    #[serde(flatten, skip_serializing_if = "serde_json::Map::is_empty")]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 /// An undo request.
@@ -95,6 +101,24 @@ impl JsonRequest {
         // Validate each operation
         for (i, json_op) in self.operations.iter().enumerate() {
             validate_op(i, &json_op.op)?;
+
+            // `multiline` only exists on replace/delete. Serde's flatten
+            // buffering copies every key into `extra` (even ones `Op`
+            // consumed), so the field's presence there is only meaningful
+            // for ops that can't consume it — reject those rather than
+            // silently ignore, since an agent that sets it expects it to
+            // work. An explicit `false` is a harmless no-op and allowed.
+            if !matches!(json_op.op, Op::Replace { .. } | Op::Delete { .. })
+                && let Some(value) = json_op.extra.get("multiline")
+                && value.as_bool() != Some(false)
+            {
+                let mut err = RipsedError::invalid_request(
+                    format!("Operation {i}: 'multiline' is not supported for this operation type."),
+                    "Multiline matching is only available for 'replace' and 'delete' operations.",
+                );
+                err.operation_index = Some(i);
+                return Err(err);
+            }
 
             // Validate per-operation glob if present
             if let Some(glob) = &json_op.glob {
@@ -921,6 +945,59 @@ mod tests {
         assert!(!req.options.hidden);
         assert!(req.options.glob.is_none());
         assert!(req.options.root.is_none());
+    }
+
+    // ── Multiline flag ──
+
+    #[test]
+    fn test_multiline_flag_on_replace_and_delete() {
+        let input = r#"{
+            "operations": [
+                {"op": "replace", "find": "a\nb", "replace": "ab", "multiline": true},
+                {"op": "delete", "find": "x\ny", "multiline": true}
+            ]
+        }"#;
+        let req = JsonRequest::parse(input).unwrap();
+        assert!(req.operations[0].op.is_multiline());
+        assert!(req.operations[1].op.is_multiline());
+    }
+
+    #[test]
+    fn test_multiline_false_on_line_scoped_op_is_tolerated() {
+        // Explicit `"multiline": false` is a no-op everywhere — rejecting it
+        // would break agents that emit defaults for every field.
+        let input = r#"{
+            "operations": [{"op": "insert_after", "find": "a", "content": "b", "multiline": false}]
+        }"#;
+        assert!(JsonRequest::parse(input).is_ok());
+    }
+
+    #[test]
+    fn test_multiline_defaults_to_false_when_omitted() {
+        let input = r#"{
+            "operations": [{"op": "replace", "find": "a", "replace": "b"}]
+        }"#;
+        let req = JsonRequest::parse(input).unwrap();
+        assert!(!req.operations[0].op.is_multiline());
+    }
+
+    #[test]
+    fn test_multiline_rejected_on_line_scoped_ops() {
+        for op_json in [
+            r#"{"op": "insert_after", "find": "a", "content": "b", "multiline": true}"#,
+            r#"{"op": "transform", "find": "a", "mode": "upper", "multiline": true}"#,
+            r#"{"op": "indent", "find": "a", "amount": 2, "multiline": true}"#,
+        ] {
+            let input = format!(r#"{{"operations": [{op_json}]}}"#);
+            let err = JsonRequest::parse(&input).unwrap_err();
+            assert_eq!(
+                err.code,
+                ripsed_core::error::ErrorCode::InvalidRequest,
+                "expected rejection for {op_json}"
+            );
+            assert_eq!(err.operation_index, Some(0));
+            assert!(err.message.contains("multiline"));
+        }
     }
 
     // ── Case insensitive flag ──

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multiline mode surface (#92): CLI `-U`/`--multiline` (conflicts with
+  line-scoped flags via clap), JSON `"multiline": true` on replace and
+  delete ops (rejected with `invalid_request` + `operation_index` on
+  any other op type; explicit `false` tolerated), `.rip` script flag
+  `--multiline`/`-U` (parse error on line-scoped ops), JSON Schema and
+  README updated. The generated schema's `op` enum also now lists
+  `transform`/`surround`/`indent`/`dedent`, which were missing.
 - Multiline match mode in the engine (#91): `Op::Replace` and
   `Op::Delete` gain a `multiline` field (serde default `false`). When
   set, the pattern matches against the whole buffer instead of

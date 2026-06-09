@@ -15,6 +15,17 @@ pub struct Cli {
     #[arg(short = 'e', long)]
     pub regex: bool,
 
+    /// Match across line boundaries (replace and delete only)
+    #[arg(
+        short = 'U',
+        long,
+        conflicts_with_all = [
+            "after", "before", "replace_line", "transform",
+            "surround", "indent", "dedent", "line_range",
+        ]
+    )]
+    pub multiline: bool,
+
     /// Delete matching lines
     #[arg(short = 'd', long)]
     pub delete: bool,

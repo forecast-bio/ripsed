@@ -55,7 +55,7 @@ fn gen_schema() {
                 "properties": {
                     "op": {
                         "type": "string",
-                        "enum": ["replace", "delete", "insert_after", "insert_before", "replace_line"],
+                        "enum": ["replace", "delete", "insert_after", "insert_before", "replace_line", "transform", "surround", "indent", "dedent"],
                         "description": "The operation type."
                     },
                     "find": {
@@ -81,6 +81,11 @@ fn gen_schema() {
                         "type": "boolean",
                         "default": false,
                         "description": "Whether matching is case-insensitive."
+                    },
+                    "multiline": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Match across line boundaries against the whole buffer (replace and delete only)."
                     },
                     "glob": {
                         "type": "string",

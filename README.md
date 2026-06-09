@@ -38,6 +38,9 @@ ripsed 'TODO' 'DONE' --glob '*.rs'
 # Delete lines matching a pattern
 ripsed -d 'console\.log'
 
+# Multiline: match across line boundaries (like rg -U)
+ripsed -U -e 'fn old\(\n\s*x: u32,\n\)' 'fn new(x: u32)'
+
 # Insert text after matching lines
 ripsed 'use serde;' --after 'use serde_json;'
 
@@ -73,6 +76,7 @@ ARGS:
 
 OPTIONS:
     -e, --regex              Treat FIND as a regex
+    -U, --multiline          Match across line boundaries (replace/delete only)
     -d, --delete             Delete matching lines
         --dry-run            Preview changes without writing
         --backup             Create .ripsed.bak files before modifying
@@ -184,6 +188,11 @@ EOF
 | Surround | `surround` | `--surround P S` | Wrap matching lines with prefix/suffix |
 | Indent | `indent` | `--indent N` | Add N spaces before matching lines |
 | Dedent | `dedent` | `--dedent N` | Remove up to N leading whitespace chars from matching lines |
+
+Replace and delete additionally accept `"multiline": true` (CLI: `-U`) to
+match against the whole file instead of line-by-line, allowing patterns to
+span line boundaries. In multiline mode, delete removes the matched span
+rather than whole lines, and line ranges are not supported.
 
 ### Error Handling
 

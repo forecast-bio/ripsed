@@ -192,6 +192,39 @@ fn script_backup_creates_bak_files() {
 }
 
 #[test]
+fn script_multiline_replace_spans_lines() {
+    let dir = setup_single_file("test.txt", "one\ntwo\nthree\n");
+
+    // \n inside a double-quoted script string is an escape for a real newline.
+    let script_content = "replace -U \"one\\ntwo\" \"1\\n2\" --glob \"*.txt\"\n";
+    let script_path = dir.path().join("ops.rip");
+    fs::write(&script_path, script_content).unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--script", script_path.to_str().unwrap()])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "1\n2\nthree\n");
+}
+
+#[test]
+fn script_multiline_rejected_for_transform() {
+    let dir = TempDir::new().unwrap();
+    let script_path = dir.path().join("bad.rip");
+    fs::write(&script_path, "transform \"x\" --mode upper --multiline\n").unwrap();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--script", script_path.to_str().unwrap()])
+        .current_dir(dir.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--multiline is not supported"));
+}
+
+#[test]
 fn script_nonexistent_file_exits_with_error() {
     let dir = TempDir::new().unwrap();
 

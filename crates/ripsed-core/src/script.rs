@@ -158,6 +158,7 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
     // Extract shared flags from args
     let mut regex = false;
     let mut case_insensitive = false;
+    let mut multiline = false;
     let mut glob: Option<String> = None;
     let mut positional: Vec<String> = Vec::new();
     let mut named: std::collections::HashMap<String, String> = std::collections::HashMap::new();
@@ -167,6 +168,7 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
         match args[i].as_str() {
             "-e" | "--regex" => regex = true,
             "-i" | "--case-insensitive" => case_insensitive = true,
+            "-U" | "--multiline" => multiline = true,
             "--glob" => {
                 i += 1;
                 if i >= args.len() {
@@ -215,11 +217,19 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
         i += 1;
     }
 
+    // --multiline only applies to replace and delete
+    if multiline && !matches!(op_name.as_str(), "replace" | "delete") {
+        return Err(script_error(
+            line_num,
+            &format!("--multiline is not supported for '{op_name}' (replace and delete only)"),
+        ));
+    }
+
     let op = match op_name.as_str() {
         "replace" => {
             require_positional_count(&positional, 2, "replace", line_num)?;
             Op::Replace {
-                multiline: false,
+                multiline,
                 find: positional[0].clone(),
                 replace: positional[1].clone(),
                 regex,
@@ -229,7 +239,7 @@ fn parse_script_line(line: &str, line_num: usize) -> Result<ScriptOp, RipsedErro
         "delete" => {
             require_positional_count(&positional, 1, "delete", line_num)?;
             Op::Delete {
-                multiline: false,
+                multiline,
                 find: positional[0].clone(),
                 regex,
                 case_insensitive,
@@ -491,6 +501,43 @@ mod tests {
                 case_insensitive: false,
             }
         );
+    }
+
+    #[test]
+    fn parse_replace_with_multiline_flag() {
+        for flag in ["--multiline", "-U"] {
+            let input = format!(r#"replace {flag} "old" "new""#);
+            let script = parse_script(&input).unwrap();
+            assert!(
+                script.operations[0].op.is_multiline(),
+                "{flag} should set multiline"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_delete_with_multiline_flag() {
+        let input = r#"delete -U "start.*end" -e"#;
+        let script = parse_script(input).unwrap();
+        let op = &script.operations[0].op;
+        assert!(op.is_multiline());
+        assert!(op.is_regex());
+    }
+
+    #[test]
+    fn parse_multiline_rejected_for_line_scoped_ops() {
+        for line in [
+            r#"transform "x" --mode upper --multiline"#,
+            r#"insert_after "x" "y" -U"#,
+            r#"indent "x" --amount 2 --multiline"#,
+        ] {
+            let err = parse_script(line).unwrap_err();
+            assert!(
+                err.message.contains("--multiline is not supported"),
+                "expected multiline rejection for {line:?}, got: {}",
+                err.message
+            );
+        }
     }
 
     #[test]

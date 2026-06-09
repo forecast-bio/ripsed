@@ -114,6 +114,104 @@ fn unwritable_directory_fails_gracefully_without_modifying_file() {
 }
 
 #[test]
+fn multiline_flag_replaces_across_lines_in_file_mode() {
+    let dir = setup_single_file("code.rs", "fn old(\n    x: u32,\n) {}\n");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["-U", "old(\n    x: u32,\n)", "new(x: u32)"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("code.rs")).unwrap();
+    assert_eq!(content, "fn new(x: u32) {}\n");
+}
+
+#[test]
+fn multiline_flag_works_in_pipe_mode() {
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--pipe", "-U", "-e", r"(\w+)\n(\w+)\n", "$2\n$1\n"])
+        .write_stdin("alpha\nbeta\n")
+        .assert()
+        .success()
+        .stdout("beta\nalpha\n");
+}
+
+#[test]
+fn multiline_delete_removes_span_in_file_mode() {
+    let dir = setup_single_file("doc.txt", "keep [S]\ngone\n[E] keep\n");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["-d", "-U", "[S]\ngone\n[E]"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("doc.txt")).unwrap();
+    assert_eq!(content, "keep  keep\n");
+}
+
+#[test]
+fn multiline_conflicts_with_line_scoped_flags() {
+    for conflicting in [
+        vec!["-U", "--indent", "2", "x"],
+        vec!["-U", "--after", "y", "x"],
+        vec!["-U", "--transform", "upper", "x"],
+        vec!["-U", "-n", "1:2", "x", "y"],
+    ] {
+        assert_cmd::cargo_bin_cmd!("ripsed")
+            .args(&conflicting)
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("cannot be used with"));
+    }
+}
+
+#[test]
+fn multiline_json_op_replaces_across_lines() {
+    let dir = setup_files(&[("test.txt", "one\ntwo\nthree\n")]);
+    let request = json_request(
+        r#"{"op": "replace", "find": "one\ntwo", "replace": "1\n2", "multiline": true}"#,
+        &format!(r#""dry_run": false, "root": "{}""#, json_path(&dir)),
+    );
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "1\n2\nthree\n");
+}
+
+#[test]
+fn multiline_json_op_rejected_for_insert() {
+    let request = json_request(
+        r#"{"op": "insert_after", "find": "a", "content": "b", "multiline": true}"#,
+        r#""dry_run": true"#,
+    );
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let resp: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(resp["errors"][0]["code"], "invalid_request");
+    assert!(
+        resp["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("multiline")
+    );
+}
+
+#[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);
     let bin_path = dir.path().join("data.bin");
