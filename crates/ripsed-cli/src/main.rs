@@ -71,7 +71,7 @@ fn run() -> Result<(), i32> {
                 Ok(chunk) => chunk,
                 Err(e) => {
                     eprintln!("ripsed: failed to read stdin: {e}");
-                    return Err(1);
+                    return Err(shared::EXIT_ERROR);
                 }
             };
 
@@ -94,7 +94,7 @@ fn run() -> Result<(), i32> {
                 let mut data = Vec::new();
                 if let Err(e) = reader.read_to_end(&mut data) {
                     eprintln!("ripsed: failed to read stdin: {e}");
-                    return Err(1);
+                    return Err(shared::EXIT_ERROR);
                 }
                 let mut cursor = std::io::Cursor::new(data);
                 match detect_stdin(&mut cursor) {
@@ -104,7 +104,7 @@ fn run() -> Result<(), i32> {
                     Ok(InputMode::Pipe(data)) => pipe_mode::run_pipe_mode(&cli, &data),
                     Err(e) => {
                         eprintln!("ripsed: failed to read stdin: {e}");
-                        Err(1)
+                        Err(shared::EXIT_ERROR)
                     }
                 }
             } else {
@@ -116,7 +116,7 @@ fn run() -> Result<(), i32> {
             json_mode::run_json_mode(json_arg, &config, cli.jsonl)
         } else {
             eprintln!("ripsed: --json requires input via stdin or argument");
-            Err(1)
+            Err(shared::EXIT_ERROR)
         }
     } else if !stdin_is_tty {
         // Pipe mode: stdin -> stdout (--no-json was set)
@@ -145,7 +145,7 @@ fn read_stdin_bytes() -> Result<Vec<u8>, i32> {
     let mut data = Vec::new();
     std::io::stdin().read_to_end(&mut data).map_err(|e| {
         eprintln!("ripsed: failed to read stdin: {e}");
-        1
+        crate::shared::EXIT_ERROR
     })?;
     Ok(data)
 }
@@ -154,7 +154,7 @@ fn read_stdin_string() -> Result<String, i32> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).map_err(|e| {
         eprintln!("ripsed: failed to read stdin: {e}");
-        1
+        crate::shared::EXIT_ERROR
     })?;
     Ok(input)
 }

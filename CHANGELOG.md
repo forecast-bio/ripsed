@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (BREAKING)
+- **Exit codes now follow the ripgrep convention** (#100): `0` = made
+  or previewed changes, `1` = ran cleanly but nothing matched, `2` =
+  error (bad regex, IO failure, invalid request, lock timeout).
+  Previously every failure — including real errors — exited `1`.
+  Scripts checking `!= 0` keep working; scripts that treated `1` as
+  "error" must now check for `2`. Errors take precedence over partial
+  success: a run with per-file errors exits `2` even if other files
+  changed. Pipe mode now exits `1` on clean passthrough with no
+  matches (was `0`); JSON mode exits `1` on a successful response with
+  zero matched files (the response body is unchanged).
+
 ### Added
 - Comparative benchmark harness (#99): `cargo xtask bench-compare`
   generates corpora and measures ripsed against GNU sed, sd, and

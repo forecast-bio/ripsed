@@ -65,7 +65,7 @@ pub fn handle_undo_list(config: &Config) {
 pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
     let Some(ref find) = cli.find else {
         eprintln!("ripsed: missing FIND pattern");
-        return Err(1);
+        return Err(crate::shared::EXIT_ERROR);
     };
 
     let op = build_op_from_cli(cli, find);
@@ -73,7 +73,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
         Ok(m) => m,
         Err(e) => {
             eprintln!("ripsed: {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -85,13 +85,14 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
         Ok(f) => f,
         Err(e) => {
             eprintln!("ripsed: {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
     if files.is_empty() {
+        // Nothing to search is a clean no-match, not an error.
         eprintln!("ripsed: no files found");
-        return Err(1);
+        return Err(crate::shared::EXIT_NO_MATCHES);
     }
 
     let mut total_changes = 0usize;
@@ -107,6 +108,8 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
     // --confirm prompts interactively between apply and write, which is
     // inherently sequential; everything else fans out across worker
     // threads, one file per worker (per-file locks make this safe).
+    let mut had_errors = false;
+
     if !cli.confirm && files.len() > 1 {
         let outcomes = process_files_parallel(&files, &op, &matcher, &options, cli);
 
@@ -114,6 +117,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
         // finished first, so output stays deterministic.
         for outcome in outcomes {
             for err in &outcome.errors {
+                had_errors = true;
                 eprintln!("{err}");
             }
             if outcome.changes.is_empty() {
@@ -141,7 +145,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
         } else if !cli.quiet {
             human::print_summary(files_modified, total_changes, cli.dry_run);
         }
-        return if total_changes == 0 { Err(1) } else { Ok(()) };
+        return exit_result(had_errors, total_changes);
     }
 
     let mut apply_all = false;
@@ -155,6 +159,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
                 Ok(l) => Some(l),
                 Err(e) => {
                     eprintln!("ripsed: {}: {e}", file_path.display());
+                    had_errors = true;
                     continue;
                 }
             }
@@ -166,6 +171,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("ripsed: {}: {e}", file_path.display());
+                had_errors = true;
                 continue;
             }
         };
@@ -174,6 +180,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
             Ok(o) => o,
             Err(e) => {
                 eprintln!("ripsed: {}: {e}", file_path.display());
+                had_errors = true;
                 continue;
             }
         };
@@ -214,6 +221,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
                 && let Err(e) = writer::create_backup(file_path)
             {
                 eprintln!("ripsed: backup failed for {}: {e}", file_path.display());
+                had_errors = true;
                 continue;
             }
             if let Some(ref text) = output.text {
@@ -228,6 +236,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
                     Ok(()) => files_modified += 1,
                     Err(e) => {
                         eprintln!("ripsed: write failed for {}: {e}", file_path.display());
+                        had_errors = true;
                     }
                 }
             }
@@ -245,7 +254,19 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
         human::print_summary(files_modified, total_changes, cli.dry_run);
     }
 
-    if total_changes == 0 { Err(1) } else { Ok(()) }
+    exit_result(had_errors, total_changes)
+}
+
+/// Final exit decision per the taxonomy: errors take precedence (2),
+/// then clean no-match (1), then success (0).
+pub(crate) fn exit_result(had_errors: bool, total_changes: usize) -> Result<(), i32> {
+    if had_errors {
+        Err(crate::shared::EXIT_ERROR)
+    } else if total_changes == 0 {
+        Err(crate::shared::EXIT_NO_MATCHES)
+    } else {
+        Ok(())
+    }
 }
 
 /// Everything one worker produced for one file, returned to the main

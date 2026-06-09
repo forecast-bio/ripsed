@@ -87,11 +87,13 @@ fn transform_upper_file_mode() {
 
 #[test]
 fn transform_upper_no_match_preserves_input() {
+    // Passthrough output, exit 1 = clean no-match (ripgrep convention).
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["--pipe", "zzz_no_match", "--transform", "upper"])
         .write_stdin("hello world\n")
         .assert()
-        .success()
+        .failure()
+        .code(1)
         .stdout("hello world\n");
 }
 

@@ -105,11 +105,14 @@ fn pipe_mode_reads_stdin_writes_stdout() {
 
 #[test]
 fn pipe_mode_no_matches_outputs_original() {
+    // Input passes through unchanged; exit code 1 = clean no-match
+    // (ripgrep convention: 0 matched, 1 no matches, 2 error).
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["zzz", "yyy"])
         .write_stdin("hello world\n")
         .assert()
-        .success()
+        .failure()
+        .code(1)
         .stdout("hello world\n");
 }
 

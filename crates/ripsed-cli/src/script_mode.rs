@@ -53,7 +53,7 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
         Ok(c) => c,
         Err(e) => {
             eprintln!("ripsed: cannot read script '{script_path}': {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -61,16 +61,17 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
         Ok(s) => s,
         Err(e) => {
             eprintln!("ripsed: {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
     if script.operations.is_empty() {
         eprintln!("ripsed: script '{script_path}' contains no operations");
-        return Err(1);
+        return Err(crate::shared::EXIT_ERROR);
     }
 
     let mut total_changes = 0usize;
+    let mut had_errors = false;
     let mut files_modified_set: HashSet<PathBuf> = HashSet::new();
 
     // Load undo log for recording changes (only when not dry-run)
@@ -90,7 +91,7 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
             Ok(m) => m,
             Err(e) => {
                 eprintln!("ripsed: {e}");
-                return Err(1);
+                return Err(crate::shared::EXIT_ERROR);
             }
         };
 
@@ -104,6 +105,7 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
             Ok(f) => f,
             Err(e) => {
                 eprintln!("ripsed: {e}");
+                had_errors = true;
                 continue;
             }
         };
@@ -117,6 +119,7 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
 
         for outcome in outcomes {
             for err in &outcome.errors {
+                had_errors = true;
                 eprintln!("{err}");
             }
             if outcome.changes.is_empty() {
@@ -148,5 +151,5 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
         human::print_summary(files_modified_set.len(), total_changes, cli.dry_run);
     }
 
-    if total_changes == 0 { Err(1) } else { Ok(()) }
+    crate::file_mode::exit_result(had_errors, total_changes)
 }

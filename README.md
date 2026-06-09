@@ -125,6 +125,19 @@ OPTIONS:
         --no-json            Force human mode even if stdin looks like JSON
 ```
 
+## Exit Codes
+
+ripsed follows the ripgrep convention:
+
+| Code | Meaning |
+|---|---|
+| 0 | Ran and made (or previewed) changes |
+| 1 | Ran cleanly, but nothing matched |
+| 2 | An error occurred (bad regex, IO failure, invalid request) |
+
+Errors take precedence: a run with per-file errors exits 2 even if
+other files were changed.
+
 ## Agent / JSON Mode
 
 ripsed has a structured JSON interface designed for AI coding agents, editor plugins, and automation pipelines. In agent mode, `dry_run` defaults to `true` for safety.

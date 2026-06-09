@@ -11,7 +11,7 @@ use crate::file_mode::build_op_from_cli;
 fn build_pipe_op(cli: &Cli) -> Result<(Op, Matcher, Option<RangeSpec>), i32> {
     let Some(ref find) = cli.find else {
         eprintln!("ripsed: missing FIND pattern");
-        return Err(1);
+        return Err(crate::shared::EXIT_ERROR);
     };
 
     let op = build_op_from_cli(cli, find);
@@ -19,7 +19,7 @@ fn build_pipe_op(cli: &Cli) -> Result<(Op, Matcher, Option<RangeSpec>), i32> {
         Ok(m) => m,
         Err(e) => {
             eprintln!("ripsed: {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -40,7 +40,7 @@ pub fn run_pipe_mode(cli: &Cli, data: &[u8]) -> Result<(), i32> {
         Ok(t) => t,
         Err(e) => {
             eprintln!("ripsed: stdin is not valid UTF-8: {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -52,11 +52,11 @@ pub fn run_pipe_mode(cli: &Cli, data: &[u8]) -> Result<(), i32> {
             } else {
                 print!("{}", output.text.as_deref().unwrap_or(text));
             }
-            Ok(())
+            crate::file_mode::exit_result(false, output.changes.len())
         }
         Err(e) => {
             eprintln!("ripsed: {e}");
-            Err(1)
+            Err(crate::shared::EXIT_ERROR)
         }
     }
 }
@@ -83,7 +83,7 @@ pub fn run_pipe_mode_streaming(
         Ok(p) => p,
         Err(e) => {
             eprintln!("ripsed: {e}");
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -95,7 +95,7 @@ pub fn run_pipe_mode_streaming(
             Ok(n) => n,
             Err(e) => {
                 eprintln!("ripsed: failed to read stdin: {e}");
-                return Err(1);
+                return Err(crate::shared::EXIT_ERROR);
             }
         };
         if bytes_read == 0 {
@@ -139,7 +139,7 @@ pub fn run_pipe_mode_streaming(
                     return Ok(());
                 }
                 eprintln!("ripsed: failed to write output: {e}");
-                return Err(1);
+                return Err(crate::shared::EXIT_ERROR);
             }
         }
     }
@@ -151,9 +151,9 @@ pub fn run_pipe_mode_streaming(
         && e.kind() != std::io::ErrorKind::BrokenPipe
     {
         eprintln!("ripsed: failed to write output: {e}");
-        return Err(1);
+        return Err(crate::shared::EXIT_ERROR);
     }
-    Ok(())
+    crate::file_mode::exit_result(false, total_changes)
 }
 
 #[cfg(test)]

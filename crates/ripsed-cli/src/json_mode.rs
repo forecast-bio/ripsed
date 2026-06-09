@@ -23,7 +23,7 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
         Err(e) => {
             let response = JsonResponse::error(vec![e]);
             println!("{}", response.to_json());
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -43,7 +43,7 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
         Err(e) => {
             let response = JsonResponse::error(vec![RipsedError::internal_error(e.to_string())]);
             println!("{}", response.to_json());
-            return Err(1);
+            return Err(crate::shared::EXIT_ERROR);
         }
     };
 
@@ -255,7 +255,14 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
     };
 
     println!("{}", response.to_json());
-    if !response.success { Err(1) } else { Ok(()) }
+    // Taxonomy: any error -> 2; clean run with zero matches -> 1; else 0.
+    if !response.success {
+        Err(crate::shared::EXIT_ERROR)
+    } else if response.summary.files_matched == 0 {
+        Err(crate::shared::EXIT_NO_MATCHES)
+    } else {
+        Ok(())
+    }
 }
 
 /// Handle a JSON undo request: pop the last N entries from the undo log,

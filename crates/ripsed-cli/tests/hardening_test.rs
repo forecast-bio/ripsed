@@ -14,7 +14,7 @@ fn pipe_mode_invalid_utf8_stdin_fails_cleanly() {
         .write_stdin(&b"hello \xff\xfe world\n"[..])
         .assert()
         .failure()
-        .code(1)
+        .code(2)
         .stderr(predicate::str::contains("UTF-8"));
 }
 
@@ -31,7 +31,7 @@ fn autodetect_invalid_utf8_stdin_fails_cleanly() {
         .write_stdin(&b"\xff\xfe\xfd"[..])
         .assert()
         .failure()
-        .code(1)
+        .code(2)
         .stderr(predicate::str::contains("stdin"));
 }
 
@@ -545,12 +545,14 @@ fn truncated_utf16_file_fails_cleanly() {
     fs::write(dir.path().join("bad.txt"), [0xFF, 0xFE, 0x68, 0x00, 0x65]).unwrap();
 
     // The malformed file is reported and skipped; the good file still
-    // gets modified.
+    // gets modified, but the per-file error makes the exit code 2
+    // (errors take precedence over partial success).
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["hello", "goodbye"])
         .current_dir(dir.path())
         .assert()
-        .success()
+        .failure()
+        .code(2)
         .stderr(predicate::str::contains("truncated"));
 
     assert_eq!(
@@ -758,6 +760,79 @@ fn script_mode_parallel_pass_is_correct() {
             format!("thread {i}\nfancy line\nthread again {i}\n")
         );
     }
+}
+
+// ── Exit-code taxonomy (0 = changed, 1 = no matches, 2 = error) ──
+
+#[test]
+fn exit_zero_when_changes_made() {
+    let dir = setup_single_file("t.txt", "hello\n");
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["hello", "bye"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+}
+
+#[test]
+fn exit_one_on_clean_no_match() {
+    let dir = setup_single_file("t.txt", "hello\n");
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["absent", "bye"])
+        .current_dir(dir.path())
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn exit_two_on_invalid_regex() {
+    let dir = setup_single_file("t.txt", "hello\n");
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["-e", "(unclosed", "bye"])
+        .current_dir(dir.path())
+        .assert()
+        .failure()
+        .code(2);
+}
+
+#[test]
+fn exit_two_on_missing_script() {
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--script", "/nonexistent/ops.rip"])
+        .assert()
+        .failure()
+        .code(2);
+}
+
+#[test]
+fn json_mode_exit_one_on_clean_no_match() {
+    let dir = setup_files(&[("t.txt", "hello\n")]);
+    let request = json_request(
+        r#"{"op": "replace", "find": "absent", "replace": "x"}"#,
+        &format!(r#""dry_run": true, "root": "{}""#, json_path(&dir)),
+    );
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    // Still a well-formed success response — the exit code carries the
+    // no-match signal, the body stays machine-readable.
+    let resp: serde_json::Value =
+        serde_json::from_str(&String::from_utf8(output.stdout).unwrap()).unwrap();
+    assert_eq!(resp["success"], true);
+}
+
+#[test]
+fn json_mode_exit_two_on_invalid_request() {
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin("{not json")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
 }
 
 #[test]

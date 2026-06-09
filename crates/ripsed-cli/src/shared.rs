@@ -9,6 +9,16 @@ use std::time::Duration;
 
 use crate::args::Cli;
 
+/// Exit codes, following the ripgrep convention:
+/// `0` = ran and made (or previewed) changes,
+/// [`EXIT_NO_MATCHES`] = ran cleanly but nothing matched,
+/// [`EXIT_ERROR`] = something went wrong (bad regex, IO failure,
+/// invalid request, lock timeout). Errors take precedence over
+/// matches: a run with per-file errors exits 2 even if other files
+/// were changed.
+pub const EXIT_NO_MATCHES: i32 = 1;
+pub const EXIT_ERROR: i32 = 2;
+
 /// Convert operation options into file discovery options.
 pub fn discovery_opts_from(opts: &OpOptions) -> DiscoveryOptions {
     DiscoveryOptions {
@@ -31,7 +41,7 @@ pub fn load_config(cli: &Cli) -> Result<Config, i32> {
     if let Some(ref path_str) = cli.config {
         Config::load(Path::new(path_str)).map_err(|e| {
             eprintln!("ripsed: {e}");
-            1
+            EXIT_ERROR
         })
     } else {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -40,7 +50,7 @@ pub fn load_config(cli: &Cli) -> Result<Config, i32> {
             Ok(None) => Ok(Config::default()),
             Err(e) => {
                 eprintln!("ripsed: {e}");
-                Err(1)
+                Err(EXIT_ERROR)
             }
         }
     }
