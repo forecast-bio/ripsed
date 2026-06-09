@@ -138,7 +138,7 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
                 }
             };
 
-            let output = match engine::apply(&content, op, &matcher, options.line_range, 3) {
+            let output = match engine::apply(&content, op, &matcher, options.range_spec(), 3) {
                 Ok(o) => o,
                 Err(e) => {
                     errors.push(e);

@@ -45,7 +45,7 @@ pub use ripsed_core::diff::Change;
 pub use ripsed_core::engine::{self, EngineOutput};
 pub use ripsed_core::error::RipsedError;
 pub use ripsed_core::matcher::Matcher;
-pub use ripsed_core::operation::{LineRange, Op};
+pub use ripsed_core::operation::{LineRange, Op, PatternRange, RangeSpec};
 pub use ripsed_core::undo::UndoEntry;
 pub use ripsed_fs::lock::FileLock;
 

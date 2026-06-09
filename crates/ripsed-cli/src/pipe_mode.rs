@@ -1,5 +1,6 @@
 use ripsed_core::engine;
 use ripsed_core::matcher::Matcher;
+use ripsed_core::operation::RangeSpec;
 
 use crate::args::Cli;
 use crate::file_mode::build_op_from_cli;
@@ -27,7 +28,12 @@ pub fn run_pipe_mode(cli: &Cli, data: &[u8]) -> Result<(), i32> {
         }
     };
 
-    match engine::apply(text, &op, &matcher, cli.line_range, 0) {
+    let range = if let Some(ref patterns) = cli.range {
+        Some(RangeSpec::Patterns(patterns.clone()))
+    } else {
+        cli.line_range.map(RangeSpec::Lines)
+    };
+    match engine::apply(text, &op, &matcher, range, 0) {
         Ok(output) => {
             if cli.count {
                 println!("{}", output.changes.len());

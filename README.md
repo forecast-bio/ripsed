@@ -47,6 +47,9 @@ ripsed --first 'foo' 'bar'
 # Cap total replacements per file
 ripsed --max-replacements 5 'foo' 'bar'
 
+# Only operate between pattern-matched lines (like sed /start/,/end/)
+ripsed --range '/\[dependencies\]/,/^$/' 'old-crate' 'new-crate'
+
 # Insert text after matching lines
 ripsed 'use serde;' --after 'use serde_json;'
 
@@ -98,6 +101,8 @@ OPTIONS:
         --before <TEXT>      Insert text before matching lines
         --replace-line <TEXT> Replace entire matching line
     -n, --line-range <N:M>   Only operate on lines N through M
+        --range </S/,/E/>    Only operate between pattern-matched lines
+                             (regex; regions inclusive, sed semantics)
         --max-depth <N>      Maximum directory recursion depth
     -c, --count              Print count of matches only
     -q, --quiet              Suppress all non-error output
@@ -202,6 +207,12 @@ Replace and delete additionally accept `"multiline": true` (CLI: `-U`) to
 match against the whole file instead of line-by-line, allowing patterns to
 span line boundaries. In multiline mode, delete removes the matched span
 rather than whole lines, and line ranges are not supported.
+
+Options accept `"range": {"start_pattern": "...", "end_pattern": "..."}` to
+scope operations to pattern-addressed regions (sed's `/start/,/end/`):
+regions open on a line matching the start regex, close on the next line
+matching the end regex (boundaries inclusive, unclosed regions run to EOF),
+and multiple regions are supported. Mutually exclusive with `line_range`.
 
 Replace also accepts `"count"` to limit how many occurrences are replaced:
 `"all"` (default), `"first_per_line"` (CLI: `--first`), `"first_in_file"`

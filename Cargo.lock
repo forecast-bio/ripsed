@@ -850,6 +850,7 @@ dependencies = [
  "clap",
  "globset",
  "predicates",
+ "regex",
  "ripsed-core",
  "ripsed-fs",
  "ripsed-json",

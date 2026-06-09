@@ -98,6 +98,30 @@ impl JsonRequest {
             ));
         }
 
+        // line_range and pattern range are mutually exclusive
+        if self.options.line_range.is_some() && self.options.range.is_some() {
+            return Err(RipsedError::invalid_request(
+                "Options cannot contain both 'line_range' and 'range'.",
+                "Use a numeric 'line_range' or a pattern-addressed 'range', not both.",
+            ));
+        }
+
+        // Pattern-range regexes must compile — fail the request up front
+        // rather than per file at apply time.
+        if let Some(patterns) = &self.options.range {
+            for (which, pattern) in [
+                ("start_pattern", &patterns.start_pattern),
+                ("end_pattern", &patterns.end_pattern),
+            ] {
+                if let Err(e) = regex::Regex::new(pattern) {
+                    return Err(RipsedError::invalid_request(
+                        format!("Range {which} failed to compile: {e}."),
+                        format!("Fix the regex in options.range.{which}: '{pattern}'."),
+                    ));
+                }
+            }
+        }
+
         // Validate each operation
         for (i, json_op) in self.operations.iter().enumerate() {
             validate_op(i, &json_op.op)?;

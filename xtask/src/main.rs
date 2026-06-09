@@ -147,6 +147,16 @@ fn gen_schema() {
                         "default": false,
                         "description": "Include hidden files."
                     },
+                    "range": {
+                        "type": "object",
+                        "description": "Pattern-addressed regions, like sed /start/,/end/ (mutually exclusive with line_range). Both patterns are regexes; regions are inclusive of boundary lines and an unclosed region extends to EOF.",
+                        "required": ["start_pattern", "end_pattern"],
+                        "properties": {
+                            "start_pattern": {"type": "string"},
+                            "end_pattern": {"type": "string"}
+                        },
+                        "additionalProperties": false
+                    },
                     "max_depth": {
                         "type": "integer",
                         "minimum": 1,

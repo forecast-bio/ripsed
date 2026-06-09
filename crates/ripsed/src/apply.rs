@@ -6,7 +6,7 @@ use ripsed_core::diff::Change;
 use ripsed_core::engine::{self, EngineOutput};
 use ripsed_core::error::RipsedError;
 use ripsed_core::matcher::Matcher;
-use ripsed_core::operation::{LineRange, Op};
+use ripsed_core::operation::{Op, RangeSpec};
 use ripsed_core::undo::UndoEntry;
 use ripsed_fs::discovery::{DiscoveryOptions, WalkStrategy, discover_files_auto};
 use ripsed_fs::lock::FileLock;
@@ -23,8 +23,8 @@ pub struct ApplyOptions {
     pub dry_run: bool,
     /// Create `.ripsed.bak` backup before writing.
     pub backup: bool,
-    /// Restrict operations to a range of lines (1-indexed, inclusive).
-    pub line_range: Option<LineRange>,
+    /// Restrict operations to a line range or pattern-addressed regions.
+    pub range: Option<RangeSpec>,
     /// Number of context lines around each change (for diffs).
     pub context_lines: usize,
     /// Timeout for acquiring the per-file advisory lock.
@@ -36,7 +36,7 @@ impl Default for ApplyOptions {
         Self {
             dry_run: true,
             backup: false,
-            line_range: None,
+            range: None,
             context_lines: 3,
             lock_timeout: LOCK_TIMEOUT,
         }
@@ -76,7 +76,7 @@ pub fn apply_to_file(
         &content,
         op,
         &matcher,
-        options.line_range,
+        options.range.clone(),
         options.context_lines,
     )
     .map_err(ApplyError::Engine)?;

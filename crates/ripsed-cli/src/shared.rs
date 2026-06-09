@@ -100,6 +100,7 @@ pub fn build_op_options(cli: &Cli, config: &Config, glob: Option<String>) -> OpO
         hidden: cli.hidden,
         max_depth: cli.max_depth.or(config.defaults.max_depth),
         line_range: cli.line_range,
+        range: cli.range.clone(),
     }
 }
 

@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Pattern-based line ranges (#94): CLI `--range '/start/,/end/'` and
+  JSON `options.range` (`{"start_pattern", "end_pattern"}`) scope
+  operations to sed-style pattern-addressed regions — regexes, regions
+  open on a start match and close on the next end match (boundaries
+  inclusive, `/a/,/a/` spans to the next `a`), multiple regions
+  supported, unclosed regions run to EOF. Mutually exclusive with
+  `line_range`/`-n` and multiline mode; pattern regexes are validated
+  at parse time. Breaking for library users: `engine::apply` takes
+  `Option<RangeSpec>` (wrapping `LineRange` or `PatternRange`) instead
+  of `Option<LineRange>`, and `ApplyOptions.line_range` is now
+  `ApplyOptions.range: Option<RangeSpec>`.
 - Replacement count control (#93): `Op::Replace` gains a `count` field
   — `"all"` (default), `"first_per_line"` (sed `s///` without `/g`),
   `"first_in_file"`, or `{"max": n}` (occurrence cap per file). CLI:

@@ -1,7 +1,7 @@
 use crate::diff::{Change, ChangeContext, FileChanges, OpResult};
 use crate::error::RipsedError;
 use crate::matcher::{MatchSpan, Matcher};
-use crate::operation::{LineRange, Op, ReplaceCount, TransformMode};
+use crate::operation::{LineRange, Op, RangeSpec, ReplaceCount, TransformMode};
 use crate::undo::UndoEntry;
 
 /// The result of applying operations to a text buffer.
@@ -30,6 +30,71 @@ enum LineAction {
     InsertedAfter { content: String, change: Change },
     /// A new line was inserted before the original; push both and record the change.
     InsertedBefore { content: String, change: Change },
+}
+
+/// Stateful line filter for a [`RangeSpec`].
+///
+/// Numeric ranges are a pure line-number check. Pattern ranges implement
+/// sed's `/start/,/end/` semantics: a region opens on a start-matching
+/// line, the end pattern is tested only on *later* lines (so `/a/,/a/`
+/// spans to the next `a`), boundary lines are inside the region, and an
+/// unclosed region runs to EOF.
+enum RangeFilter {
+    All,
+    Lines(LineRange),
+    Patterns {
+        start: regex::Regex,
+        end: regex::Regex,
+        active: bool,
+    },
+}
+
+impl RangeFilter {
+    fn new(range: Option<&RangeSpec>) -> Result<Self, RipsedError> {
+        match range {
+            None => Ok(RangeFilter::All),
+            Some(RangeSpec::Lines(lines)) => Ok(RangeFilter::Lines(*lines)),
+            Some(RangeSpec::Patterns(patterns)) => {
+                let compile = |which: &str, pattern: &str| {
+                    regex::Regex::new(pattern).map_err(|e| {
+                        let mut err = RipsedError::invalid_regex(0, pattern, &e.to_string());
+                        err.operation_index = None;
+                        err.message = format!("Range {which} pattern failed to compile: {e}.");
+                        err
+                    })
+                };
+                Ok(RangeFilter::Patterns {
+                    start: compile("start", &patterns.start_pattern)?,
+                    end: compile("end", &patterns.end_pattern)?,
+                    active: false,
+                })
+            }
+        }
+    }
+
+    /// Whether the operation applies to this line. Must be called once per
+    /// line, in order — pattern ranges are stateful.
+    fn admits(&mut self, line_num: usize, line: &str) -> bool {
+        match self {
+            RangeFilter::All => true,
+            RangeFilter::Lines(range) => range.contains(line_num),
+            RangeFilter::Patterns { start, end, active } => {
+                if *active {
+                    // End-boundary line is still inside the region; the
+                    // region closes after it.
+                    if end.is_match(line) {
+                        *active = false;
+                    }
+                    true
+                } else if start.is_match(line) {
+                    *active = true;
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
 }
 
 /// Detect whether the text predominantly uses CRLF line endings.
@@ -287,14 +352,14 @@ pub fn apply(
     text: &str,
     op: &Op,
     matcher: &Matcher,
-    line_range: Option<LineRange>,
+    range: Option<RangeSpec>,
     context_lines: usize,
 ) -> Result<EngineOutput, RipsedError> {
     if op.is_multiline() {
-        if line_range.is_some() {
+        if range.is_some() {
             return Err(RipsedError::invalid_request(
-                "line ranges are not supported in multiline mode",
-                "multiline patterns match against the whole buffer; remove the line range or the multiline flag",
+                "ranges are not supported in multiline mode",
+                "multiline patterns match against the whole buffer; remove the range or the multiline flag",
             ));
         }
         if matches!(
@@ -312,6 +377,7 @@ pub fn apply(
         return Ok(apply_multiline(text, op, matcher, context_lines));
     }
 
+    let mut range_filter = RangeFilter::new(range.as_ref())?;
     let crlf = uses_crlf(text);
     let line_sep = if crlf { "\r\n" } else { "\n" };
     let lines: Vec<&str> = text.lines().collect();
@@ -322,10 +388,8 @@ pub fn apply(
     for (idx, &line) in lines.iter().enumerate() {
         let line_num = idx + 1; // 1-indexed
 
-        // Skip lines outside the line range
-        if let Some(range) = line_range
-            && !range.contains(line_num)
-        {
+        // Skip lines outside the range (numeric or pattern-addressed)
+        if !range_filter.admits(line_num, line) {
             result_lines.push(line.to_string());
             continue;
         }
@@ -703,7 +767,7 @@ mod tests {
             end: Some(3),
         });
         let matcher = Matcher::new(&op).unwrap();
-        let result = apply(text, &op, &matcher, range, 0).unwrap();
+        let result = apply(text, &op, &matcher, range.map(RangeSpec::Lines), 0).unwrap();
         assert_eq!(result.text.unwrap(), "line1\nrow2\nrow3\nline4\n");
     }
 
@@ -930,7 +994,7 @@ mod tests {
             start: 1,
             end: Some(2),
         };
-        let err = apply("a\n", &op, &matcher, Some(range), 0).unwrap_err();
+        let err = apply("a\n", &op, &matcher, Some(RangeSpec::Lines(range)), 0).unwrap_err();
         assert_eq!(err.code, crate::error::ErrorCode::InvalidRequest);
     }
 
@@ -1130,6 +1194,124 @@ mod tests {
         let result = apply(text, &op, &matcher, None, 0).unwrap();
         assert_eq!(result.text.unwrap(), "B\na\na\na\n");
         assert_eq!(result.changes.len(), 1);
+    }
+
+    // ── Pattern-addressed ranges (sed /start/,/end/) ──
+
+    fn pattern_range(start: &str, end: &str) -> Option<RangeSpec> {
+        Some(RangeSpec::Patterns(crate::operation::PatternRange {
+            start_pattern: start.to_string(),
+            end_pattern: end.to_string(),
+        }))
+    }
+
+    fn simple_replace(find: &str, replace: &str) -> Op {
+        Op::Replace {
+            find: find.to_string(),
+            replace: replace.to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: false,
+            count: ReplaceCount::All,
+        }
+    }
+
+    #[test]
+    fn test_pattern_range_single_region_boundaries_inclusive() {
+        let text = "x\nBEGIN x\nx\nEND x\nx\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, pattern_range("BEGIN", "END"), 0).unwrap();
+        // Lines 2-4 (inclusive boundaries) are in range; 1 and 5 are not.
+        assert_eq!(result.text.unwrap(), "x\nBEGIN y\ny\nEND y\nx\n");
+    }
+
+    #[test]
+    fn test_pattern_range_multiple_regions() {
+        let text = "x\nA\nx\nB\nx\nA\nx\nB\nx\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, pattern_range("A", "B"), 0).unwrap();
+        // Two A..B regions; the x's between them (lines 3 and 7) are inside,
+        // the x's outside (lines 1, 5, 9) are not.
+        assert_eq!(result.text.unwrap(), "x\nA\ny\nB\nx\nA\ny\nB\nx\n");
+    }
+
+    #[test]
+    fn test_pattern_range_unterminated_extends_to_eof() {
+        let text = "x\nBEGIN\nx\nx\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, pattern_range("BEGIN", "NEVER"), 0).unwrap();
+        assert_eq!(result.text.unwrap(), "x\nBEGIN\ny\ny\n");
+    }
+
+    #[test]
+    fn test_pattern_range_same_start_and_end_spans_to_next_match() {
+        // sed semantics: /a/,/a/ opens at the first 'a' and closes at the
+        // NEXT 'a' — the end pattern is never tested on the opening line.
+        let text = "MARK\nx\nMARK\nx\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, pattern_range("MARK", "MARK"), 0).unwrap();
+        assert_eq!(result.text.unwrap(), "MARK\ny\nMARK\nx\n");
+    }
+
+    #[test]
+    fn test_pattern_range_delete_can_remove_boundary_lines() {
+        let text = "keep\nSTART\ngone\nSTOP\nkeep\n";
+        let op = Op::Delete {
+            find: ".*".to_string(),
+            regex: true,
+            case_insensitive: false,
+            multiline: false,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, pattern_range("START", "STOP"), 0).unwrap();
+        assert_eq!(result.text.unwrap(), "keep\nkeep\n");
+    }
+
+    #[test]
+    fn test_pattern_range_start_regex_anchors() {
+        let text = "prefix BEGIN\nx\nBEGIN\nx\nEND\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        // Anchored start: only the line that IS exactly BEGIN opens a region.
+        let result = apply(text, &op, &matcher, pattern_range("^BEGIN$", "END"), 0).unwrap();
+        assert_eq!(result.text.unwrap(), "prefix BEGIN\nx\nBEGIN\ny\nEND\n");
+    }
+
+    #[test]
+    fn test_pattern_range_invalid_regex_is_rejected() {
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let err = apply("x\n", &op, &matcher, pattern_range("(unclosed", "END"), 0).unwrap_err();
+        assert_eq!(err.code, crate::error::ErrorCode::InvalidRegex);
+        assert!(err.message.contains("start"));
+    }
+
+    #[test]
+    fn test_pattern_range_rejected_in_multiline_mode() {
+        let op = Op::Replace {
+            find: "x".to_string(),
+            replace: "y".to_string(),
+            regex: false,
+            case_insensitive: false,
+            multiline: true,
+            count: ReplaceCount::All,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let err = apply("x\n", &op, &matcher, pattern_range("A", "B"), 0).unwrap_err();
+        assert_eq!(err.code, crate::error::ErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn test_pattern_range_no_region_means_no_changes() {
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply("x\nx\n", &op, &matcher, pattern_range("NEVER", "END"), 0).unwrap();
+        assert!(result.text.is_none());
+        assert!(result.changes.is_empty());
     }
 
     #[test]
@@ -1576,7 +1758,7 @@ mod tests {
             end: Some(3),
         });
         let matcher = Matcher::new(&op).unwrap();
-        let result = apply(text, &op, &matcher, range, 0).unwrap();
+        let result = apply(text, &op, &matcher, range.map(RangeSpec::Lines), 0).unwrap();
         assert_eq!(result.text.unwrap(), "hello\nHELLO\nHELLO\nhello\n");
         assert_eq!(result.changes.len(), 2);
     }
@@ -1775,7 +1957,7 @@ mod tests {
             end: Some(3),
         });
         let matcher = Matcher::new(&op).unwrap();
-        let result = apply(text, &op, &matcher, range, 0).unwrap();
+        let result = apply(text, &op, &matcher, range.map(RangeSpec::Lines), 0).unwrap();
         assert_eq!(result.text.unwrap(), "foo\n<foo>\n<foo>\nfoo\n");
         assert_eq!(result.changes.len(), 2);
     }
@@ -1962,7 +2144,7 @@ mod tests {
             end: Some(3),
         });
         let matcher = Matcher::new(&op).unwrap();
-        let result = apply(text, &op, &matcher, range, 0).unwrap();
+        let result = apply(text, &op, &matcher, range.map(RangeSpec::Lines), 0).unwrap();
         assert_eq!(result.text.unwrap(), "foo\n    foo\n    foo\nfoo\n");
         assert_eq!(result.changes.len(), 2);
     }
@@ -2134,7 +2316,7 @@ mod tests {
             end: Some(3),
         });
         let matcher = Matcher::new(&op).unwrap();
-        let result = apply(text, &op, &matcher, range, 0).unwrap();
+        let result = apply(text, &op, &matcher, range.map(RangeSpec::Lines), 0).unwrap();
         assert_eq!(result.text.unwrap(), "    foo\nfoo\nfoo\n    foo\n");
         assert_eq!(result.changes.len(), 2);
     }

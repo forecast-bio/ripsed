@@ -298,6 +298,118 @@ fn count_json_op_first_per_line() {
 }
 
 #[test]
+fn pattern_range_scopes_replacement_to_region() {
+    let dir = setup_single_file(
+        "conf.toml",
+        "x = 1\n[dependencies]\nx = 2\n[dev-dependencies]\nx = 3\n",
+    );
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args([
+            "--range",
+            r"/\[dependencies\]/,/\[dev-dependencies\]/",
+            "x",
+            "y",
+        ])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(dir.path().join("conf.toml")).unwrap();
+    // The region opens at [dependencies] and closes at [dev-dependencies]
+    // (both inclusive), so only x = 2 inside it is replaced; x = 1 before
+    // and x = 3 after the region survive.
+    assert_eq!(
+        content,
+        "x = 1\n[dependencies]\ny = 2\n[dev-dependencies]\nx = 3\n"
+    );
+}
+
+#[test]
+fn pattern_range_conflicts_with_line_range_and_multiline() {
+    for args in [
+        vec!["--range", "/a/,/b/", "-n", "1:2", "x", "y"],
+        vec!["--range", "/a/,/b/", "-U", "x", "y"],
+    ] {
+        assert_cmd::cargo_bin_cmd!("ripsed")
+            .args(&args)
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("cannot be used with"));
+    }
+}
+
+#[test]
+fn pattern_range_malformed_syntax_rejected() {
+    for bad in ["start,end", "/start/", "/a/,/b", "a/,/b/"] {
+        assert_cmd::cargo_bin_cmd!("ripsed")
+            .args(["--range", bad, "x", "y"])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("/start/,/end/"));
+    }
+}
+
+#[test]
+fn pattern_range_invalid_regex_rejected_at_parse() {
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--range", "/(unclosed/,/end/", "x", "y"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("invalid start pattern"));
+}
+
+#[test]
+fn pattern_range_works_in_json_mode() {
+    let dir = setup_files(&[("test.txt", "x\nBEGIN\nx\nEND\nx\n")]);
+    let request = format!(
+        r#"{{
+            "version": "1",
+            "operations": [{{"op": "replace", "find": "x", "replace": "y"}}],
+            "options": {{
+                "dry_run": false,
+                "root": "{}",
+                "range": {{"start_pattern": "BEGIN", "end_pattern": "END"}}
+            }}
+        }}"#,
+        json_path(&dir)
+    );
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
+    assert_eq!(content, "x\nBEGIN\ny\nEND\nx\n");
+}
+
+#[test]
+fn json_rejects_both_line_range_and_pattern_range() {
+    let request = r#"{
+        "version": "1",
+        "operations": [{"op": "replace", "find": "x", "replace": "y"}],
+        "options": {
+            "line_range": {"start": 1, "end": 2},
+            "range": {"start_pattern": "a", "end_pattern": "b"}
+        }
+    }"#;
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let resp: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(resp["errors"][0]["code"], "invalid_request");
+}
+
+#[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);
     let bin_path = dir.path().join("data.bin");

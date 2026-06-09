@@ -179,6 +179,21 @@ pub struct OpOptions {
     pub hidden: bool,
     pub max_depth: Option<usize>,
     pub line_range: Option<LineRange>,
+    /// Pattern-addressed regions (mutually exclusive with `line_range`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range: Option<PatternRange>,
+}
+
+impl OpOptions {
+    /// The effective range filter: pattern regions if set, else the
+    /// numeric line range. (Validation rejects requests setting both.)
+    pub fn range_spec(&self) -> Option<RangeSpec> {
+        if let Some(patterns) = &self.range {
+            Some(RangeSpec::Patterns(patterns.clone()))
+        } else {
+            self.line_range.map(RangeSpec::Lines)
+        }
+    }
 }
 
 impl Default for OpOptions {
@@ -194,6 +209,7 @@ impl Default for OpOptions {
             hidden: false,
             max_depth: None,
             line_range: None,
+            range: None,
         }
     }
 }
@@ -209,6 +225,28 @@ impl LineRange {
     pub fn contains(&self, line: usize) -> bool {
         line >= self.start && self.end.is_none_or(|end| line <= end)
     }
+}
+
+/// A pattern-addressed region, like sed's `/start/,/end/`.
+///
+/// Both patterns are regexes. A region opens on a line matching
+/// `start_pattern` and closes on the next subsequent line matching
+/// `end_pattern` (both boundary lines are inside the region; the end
+/// pattern is never tested against the line that opened the region, so
+/// `/a/,/a/` spans from one `a` to the *next* one — sed semantics).
+/// Multiple regions are supported; an unclosed region extends to EOF.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PatternRange {
+    pub start_pattern: String,
+    pub end_pattern: String,
+}
+
+/// Which lines an operation applies to: a numeric line range or
+/// pattern-addressed regions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RangeSpec {
+    Lines(LineRange),
+    Patterns(PatternRange),
 }
 
 use crate::default_true;

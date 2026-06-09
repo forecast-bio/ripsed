@@ -1,5 +1,5 @@
 use clap::Parser;
-use ripsed_core::operation::{LineRange, TransformMode};
+use ripsed_core::operation::{LineRange, PatternRange, TransformMode};
 
 /// ripsed — a fast, modern stream editor. Like sed, but better.
 #[derive(Parser, Debug)]
@@ -123,6 +123,15 @@ pub struct Cli {
     #[arg(short = 'n', long, value_parser = parse_line_range)]
     pub line_range: Option<LineRange>,
 
+    /// Only operate between pattern-matched lines (format: /start/,/end/)
+    #[arg(
+        long,
+        value_name = "/START/,/END/",
+        value_parser = parse_pattern_range,
+        conflicts_with_all = ["line_range", "multiline"]
+    )]
+    pub range: Option<PatternRange>,
+
     /// Maximum directory recursion depth
     #[arg(long, value_parser = parse_max_depth)]
     pub max_depth: Option<usize>,
@@ -184,12 +193,74 @@ fn parse_transform_mode(s: &str) -> Result<TransformMode, String> {
     s.parse()
 }
 
+/// Parse a sed-style pattern range: `/start/,/end/`.
+///
+/// Both patterns are regexes and are compiled here so a typo fails at
+/// argument parsing rather than per-file. Patterns containing the literal
+/// sequence `/,/` are not expressible in this syntax.
+fn parse_pattern_range(s: &str) -> Result<PatternRange, String> {
+    const FORMAT: &str = "range must look like /start/,/end/";
+    let inner = s
+        .strip_prefix('/')
+        .and_then(|rest| rest.strip_suffix('/'))
+        .ok_or(FORMAT)?;
+    let parts: Vec<&str> = inner.splitn(2, "/,/").collect();
+    let [start, end] = parts.as_slice() else {
+        return Err(FORMAT.to_string());
+    };
+    for (which, pattern) in [("start", start), ("end", end)] {
+        regex::Regex::new(pattern)
+            .map_err(|e| format!("invalid {which} pattern '{pattern}': {e}"))?;
+    }
+    Ok(PatternRange {
+        start_pattern: start.to_string(),
+        end_pattern: end.to_string(),
+    })
+}
+
 /// Parse --max-replacements: a positive occurrence cap.
 fn parse_max_replacements(s: &str) -> Result<usize, String> {
     match s.parse::<usize>() {
         Ok(0) => Err("max replacements must be at least 1".to_string()),
         Ok(n) => Ok(n),
         Err(_) => Err(format!("'{s}' is not a valid number")),
+    }
+}
+
+#[cfg(test)]
+mod range_tests {
+    use super::*;
+
+    #[test]
+    fn parse_pattern_range_valid() {
+        let r = parse_pattern_range("/begin/,/end/").unwrap();
+        assert_eq!(r.start_pattern, "begin");
+        assert_eq!(r.end_pattern, "end");
+    }
+
+    #[test]
+    fn parse_pattern_range_regex_metachars_pass_through() {
+        let r = parse_pattern_range(r"/\[deps\]/,/^$/").unwrap();
+        assert_eq!(r.start_pattern, r"\[deps\]");
+        assert_eq!(r.end_pattern, "^$");
+    }
+
+    #[test]
+    fn parse_pattern_range_malformed_rejected() {
+        for bad in ["start,end", "/start/", "/a/,/b", "a/,/b/", ""] {
+            assert!(
+                parse_pattern_range(bad).is_err(),
+                "{bad:?} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_pattern_range_invalid_regex_rejected() {
+        let err = parse_pattern_range("/(unclosed/,/end/").unwrap_err();
+        assert!(err.contains("invalid start pattern"));
+        let err = parse_pattern_range("/start/,/(unclosed/").unwrap_err();
+        assert!(err.contains("invalid end pattern"));
     }
 }
 
