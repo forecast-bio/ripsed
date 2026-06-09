@@ -1,0 +1,10 @@
+{
+  "uuid": "d755d76e-6dc9-4873-9472-ccd025c51dd2",
+  "display_id": 95,
+  "title": "Add encoding support: BOM detection and UTF-16 transcode on read/write",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:20:20.793447719Z",
+  "updated_at": "2026-06-09T20:20:20.793447719Z"
+}
