@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.9] - 2026-04-17
 
+### Fixed
+- Fix Windows build: missing windows-sys features for FileSystem/IO (#85)
+
 ### Changed
 - **MSRV bumped to 1.93** (from 1.85). Required for the let-chain syntax
   used to collapse several nested `if let` sites per the updated
