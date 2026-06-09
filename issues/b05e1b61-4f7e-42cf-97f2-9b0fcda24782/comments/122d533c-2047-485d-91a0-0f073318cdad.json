@@ -1,0 +1,10 @@
+{
+  "uuid": "122d533c-2047-485d-91a0-0f073318cdad",
+  "issue_uuid": "b05e1b61-4f7e-42cf-97f2-9b0fcda24782",
+  "author": "w3Lb",
+  "content": "Plan: prior comment shows the April 17 bump sweep completed but the issue was left open. Re-running maintenance as of 2026-06-09: cargo update for semver-compatible bumps, check for new major versions of direct deps, cargo audit for advisories, then full verification (test/clippy/fmt + Windows-target cargo check). Fix any breakages. Close on green.",
+  "created_at": "2026-06-09T19:52:49.919422133Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAL3GnRb/kTjF8FSpc3t+Q1uq4sPQTq8W3Mn3ZlhPvi2zcLAiZumJoYfrDMlMQxssoZGbqSKlooZ4XFlMkrrSLAg=="
+}
