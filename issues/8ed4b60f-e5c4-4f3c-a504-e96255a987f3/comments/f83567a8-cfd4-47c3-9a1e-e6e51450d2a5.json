@@ -1,0 +1,10 @@
+{
+  "uuid": "f83567a8-cfd4-47c3-9a1e-e6e51450d2a5",
+  "issue_uuid": "8ed4b60f-e5c4-4f3c-a504-e96255a987f3",
+  "author": "w3Lb",
+  "content": "Found during the 2026-06-09 deep review. engine.rs:113 and engine.rs:130 build Change.after as format!(\"{}\\n{content}\", cx.line) (and the mirror for InsertBefore), hardcoding LF. The actual file output is correct — lines are rejoined with the detected separator (uses_crlf majority vote) later in apply() — but the before/after metadata surfaced in JSON mode shows LF where a CRLF file will actually get CRLF. Agents consuming the structured diff see misleading bytes. Fix: thread the detected line separator into the LineCtx (or the per-op helpers) and use it when composing the metadata strings; add a CRLF InsertAfter/InsertBefore test asserting the Change.after content matches the real output.",
+  "created_at": "2026-06-09T19:55:04.173245669Z",
+  "kind": "observation",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAOGj8stBD2HU523M+klKoAO2D62P0Xs0MU1KxlxvvIT6COHvfSGkjEkMszERo057nMWNVldILjBRi8Ewi9XsYCA=="
+}
