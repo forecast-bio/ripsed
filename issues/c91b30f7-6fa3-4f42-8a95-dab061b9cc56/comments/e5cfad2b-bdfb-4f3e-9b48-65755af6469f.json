@@ -1,0 +1,10 @@
+{
+  "uuid": "e5cfad2b-bdfb-4f3e-9b48-65755af6469f",
+  "issue_uuid": "c91b30f7-6fa3-4f42-8a95-dab061b9cc56",
+  "author": "w3Lb",
+  "content": "Delivered in commit 51f1b9d. CLI: -U/--multiline with clap conflicts_with_all against the 8 line-scoped flags; threaded through build_op_from_cli; works in file + pipe modes. JSON: multiline:true accepted on replace/delete via the flattened Op; JsonOp gains a flattened extra map for misuse detection — NOTE serde flatten-buffering copies ALL keys into the map (even consumed ones), so detection is op-kind-gated, not presence-gated (first attempt failed exactly this way; regression-tested). Rejection = invalid_request with operation_index; explicit false tolerated. Scripts: --multiline/-U on replace/delete, line-numbered parse error elsewhere. Docs: README (quick start, CLI ref, ops table), xtask schema (+multiline property; also fixed stale op enum missing transform/surround/indent/dedent). 15 new tests. 23 suites green, clippy/fmt clean. Also fixed .gitignore for nested .crosslink/.cache stamps (**/ prefix — internal-slash patterns are root-anchored).",
+  "created_at": "2026-06-09T20:48:00.752085337Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAIxcvzSnnbWsGoIyQBiByZcbeQOyy10narzwBXugwsvvpvzhgavnFylhQzZMRy7DanpAT2ub7utZjeYpsdkz4Ag=="
+}
