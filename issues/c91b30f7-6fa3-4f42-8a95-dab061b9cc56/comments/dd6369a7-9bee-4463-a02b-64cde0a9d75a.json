@@ -1,0 +1,10 @@
+{
+  "uuid": "dd6369a7-9bee-4463-a02b-64cde0a9d75a",
+  "issue_uuid": "c91b30f7-6fa3-4f42-8a95-dab061b9cc56",
+  "author": "w3Lb",
+  "content": "WHY: surface for #91. SCOPE: ripsed-cli + ripsed-json. CLI: add -U/--multiline flag (rg-compatible spelling), valid with find/replace and -d delete; reject with a clear error when combined with line-scoped ops. JSON: add \"multiline\": true field on replace/delete ops (serde default false; validate_op rejects it on other op kinds with operation_index in the error). Script mode: --multiline token in .rip replace/delete lines. Docs: README CLI reference + JSON operations table + schema in xtask gen-schema. TESTS: integration tests in cli_human_test/cli_json_test/script_test for cross-line replace; error-path test for multiline+indent rejection. BLOCKED BY #91.",
+  "created_at": "2026-06-09T20:20:48.484283008Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAu9Zj2gxBd5zNtPfIArNjozqHnlc41CfVwGYPA4pWYeTeADFtJGeiGxZL5Z2Q94QCE0IgfqyJPvYZsDhY2Z12CQ=="
+}
