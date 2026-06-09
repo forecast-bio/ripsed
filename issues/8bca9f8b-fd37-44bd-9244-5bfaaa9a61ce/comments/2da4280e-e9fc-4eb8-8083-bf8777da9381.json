@@ -1,0 +1,10 @@
+{
+  "uuid": "2da4280e-e9fc-4eb8-8083-bf8777da9381",
+  "issue_uuid": "8bca9f8b-fd37-44bd-9244-5bfaaa9a61ce",
+  "author": "w3Lb",
+  "content": "WHY: engine::apply() iterates text.lines(), so no pattern can ever match across a line boundary — the single biggest capability gap vs sed/sd/rg -U for a refactoring tool (multi-line signatures, import blocks, license headers). SCOPE: ripsed-core only. Add a buffer-mode path in engine::apply() used when the op requests multiline: compile the regex with (?s) semantics permitted and run find/replace against the whole buffer instead of per-line. Change metadata for a multi-line span: line = 1-indexed line of span start, before/after carry the full span text using the file's detected separator (see #89 — same invariant: metadata bytes must match output bytes). Delete in multiline mode removes the matched span. CONSTRAINTS: line-range filtering (LineRange) and ops that are inherently line-scoped (Indent/Dedent/Surround/InsertAfter/InsertBefore/ReplaceLine/Transform) reject multiline with a validation error (invalid_request) rather than silently behaving line-wise. CRLF: normalize matching against the raw buffer, never mutate separators outside the replaced span; preserve trailing-newline rule. TESTS: span across 2+ lines, span at EOF without trailing newline, CRLF file span metadata == output bytes, overlapping span behavior locked, proptest line-count invariant replaced with span-aware version, undo roundtrip. Blocks #92.",
+  "created_at": "2026-06-09T20:20:42.452482208Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABALCgI/xiiDDkzLL+j3s2/Y+S56HZgOMP4apE0l3vojtrLAKMmBaimhjaZQh7QFBtE0ekuhKqXWhH8lK2fpWKtCw=="
+}
