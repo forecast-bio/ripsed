@@ -1,0 +1,10 @@
+{
+  "uuid": "c50711e6-17b9-4692-a35b-4a0e61f0652c",
+  "issue_uuid": "7263381d-169e-42d7-b0f0-d5ea97df4558",
+  "author": "w3Lb",
+  "content": "Found by the #99 comparative benchmarks: on a 64 MiB single-file replace, ripsed takes ~6.3s vs sed's ~1.0s. Dominant cost: the undo log stores a JSON-escaped copy of the ENTIRE original text per modified file — for a 64 MiB file that's a second 64+ MiB serialize+write on every edit (with the 0600 chmod), plus the engine's per-line String materialization. PROPOSAL: (a) add undo.max_file_bytes config (default e.g. 4 MiB): files larger than the cap get no undo entry, with a one-line stderr note ('undo skipped for big.txt: exceeds undo.max_file_bytes') and --undo-list showing the gap; (b) add --no-undo flag for bulk runs; (c) consider storing undo entries as separate files instead of JSONL-escaped strings (avoids escape blowup, enables streaming write). Re-run cargo xtask bench-compare big-file after to quantify. Secondary (separate concern): engine line-Vec materialization for huge files — measure before optimizing.",
+  "created_at": "2026-06-09T21:46:38.224179991Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA1LblkVZNMkufKTdb2PZw4UKledRry7y9DBYUfp8pigxvXOAD8fTQ7nzehIjIUyOQOmzzZnns8kyM28XolkNvCQ=="
+}
