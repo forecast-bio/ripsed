@@ -1,0 +1,10 @@
+{
+  "uuid": "82918360-7033-482b-a335-d514b5e2c812",
+  "issue_uuid": "8f2e084d-7d64-4005-ab6d-9ae369d92953",
+  "author": "w3Lb",
+  "content": "WHY: sed streams unbounded input; ripsed buffers all of stdin (detect.rs read_to_end + 64MiB cap from 0.2.5), so 'drop-in sed in a pipeline' fails on big/infinite streams. SCOPE: pipe path only (file mode is unaffected; JSON requests stay bounded). Rework: detect_buffered peeks a bounded prefix (e.g. fill_buf) for the JSON heuristic, then hands the reader off; pipe_mode processes BufRead line-by-line, applying the op per line and writing to stdout incrementally (engine already line-oriented — needs a per-line entry point in ripsed-core or reuse of the LineCtx helpers; CRLF detection becomes per-line passthrough of the line's own terminator instead of majority vote). The 64MiB cap stays for the JSON request path, is removed for streaming pipe. INTERACTIONS: --count accumulates and prints at EOF; line-range works (line counter); multiline mode (#91) is incompatible with streaming — buffer-with-cap fallback + documented. NOTE: conflicts with #91's buffer-mode if done naively — coordinate the engine entry points. TESTS: large synthetic stream (>64MiB) through pipe mode, SIGPIPE/early-close doesn't panic, CRLF lines pass through unchanged, count-at-EOF, line-range on stream.",
+  "created_at": "2026-06-09T20:21:25.690283442Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGuOKl6Q/WBVYPuPRiyiietkn7AhJydjo+KjzjAFFPsAvywgz6797o64QUoCSoEzFSKlS+JRMI9EWzPvBaa0TBA=="
+}
