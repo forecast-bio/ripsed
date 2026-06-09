@@ -1,0 +1,10 @@
+{
+  "uuid": "0bb6f2e4-df23-46f2-9cb7-7b4fce926a59",
+  "issue_uuid": "2a3ce7ed-58cc-4fc6-916d-6a001aa8030b",
+  "author": "w3Lb",
+  "content": "Delivered in commit 2c74dc9. Shared process_one_file worker (lock/read/apply/backup/write, diagnostics returned not printed) used by file mode and per-op script passes; par_iter preserves input order so printing/undo/counters run on the main thread in discovery order — output byte-identical across thread counts (regression-tested). Side improvement: a failed write now clears the outcome's undo entry, so undo can't restore a write that never landed (the old sequential path recorded undo before writing). --threads N long-only (-j taken by --json), default all cores; --confirm stays sequential; script-mode lock scope narrowed to per-(op,file) pass, documented. Test gotcha worth remembering: determinism tests comparing stdout across runs must normalize temp-dir paths — first version failed on the tempdir name, not real nondeterminism. 6 new e2e tests. 23 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T21:31:49.144104862Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAoDPjVrzOlpdCnmDGyHPb2DrhxkksV6HE2dtXgLCJLLl1eYKS91G6JPDAPeFfa3KKD1J+A6pQsp8uByQfHyBICQ=="
+}
