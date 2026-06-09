@@ -1,0 +1,10 @@
+{
+  "uuid": "fe57ba9b-77b3-49bd-820b-d61ee3412d2e",
+  "issue_uuid": "94eab057-2cd7-4fbf-841e-e3dc0aa99b5c",
+  "author": "w3Lb",
+  "content": "Fix landed in commit 9ead6a3 (added Win32_Storage_FileSystem + Win32_System_IO to windows-sys features in ripsed-fs/Cargo.toml, now on windows-sys 0.61). Verified today: installed x86_64-pc-windows-msvc target and ran cargo check --workspace against it — all crates pass. lock.rs imports (Foundation, Storage::FileSystem, System::IO) all covered by the declared feature set.",
+  "created_at": "2026-06-09T19:39:53.296166028Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAksY+8/3J7y3d/PMpaGiQoQ7G/Dw0RFtnoudvP/4NYlv46Ayi5amk+IlKQV8AzPYkwbEvNa2sLDUIytf0/c9EDQ=="
+}
