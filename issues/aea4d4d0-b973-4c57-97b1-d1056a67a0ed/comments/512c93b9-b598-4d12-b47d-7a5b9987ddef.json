@@ -1,0 +1,10 @@
+{
+  "uuid": "512c93b9-b598-4d12-b47d-7a5b9987ddef",
+  "issue_uuid": "aea4d4d0-b973-4c57-97b1-d1056a67a0ed",
+  "author": "w3Lb",
+  "content": "Plan: change run() -> Result<(), i32> so mode functions' results propagate naturally (drops result_to_code adapter). Extract read_stdin_bytes()/read_stdin_string() helpers returning Result<_, i32> that print the error and yield Err(1), replacing the three unwrap_or_else closures that called process::exit(1) (main.rs:51,67,104). process::exit remains only in main(), after run() returns — RAII destructors in all mode code now run before exit. Verify with cargo test --workspace + clippy.",
+  "created_at": "2026-06-09T19:41:14.026016451Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAkyzTUKEHSalMnqfVlfIwp9SElPj0KQP2R4PX2Y6KbxeD5nkY5Mz+vhfMNox1AMjahGumddCbPZVTlM45WpW7AQ=="
+}
