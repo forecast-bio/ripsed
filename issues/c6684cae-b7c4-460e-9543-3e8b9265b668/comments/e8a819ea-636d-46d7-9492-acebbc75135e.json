@@ -1,0 +1,10 @@
+{
+  "uuid": "e8a819ea-636d-46d7-9492-acebbc75135e",
+  "issue_uuid": "c6684cae-b7c4-460e-9543-3e8b9265b668",
+  "author": "w3Lb",
+  "content": "Delivered in commit ec6bbe1. ReplaceCount enum on Op::Replace (All default, FirstPerLine, FirstInFile, Max(n)); wire format all/first_per_line/first_in_file/{max:n}. Matcher::replace_n(text, replacement, limit) returns (text, occurrences). Engine threads a file-wide occurrence budget through the per-line loop — partial-line consumption works (line with 3 occurrences + budget 2 replaces exactly 2); multiline mode truncates spans; FirstPerLine+multiline rejected at engine, JSON validation, and script parse. CLI --first/--first-in-file/--max-replacements with clap mutual exclusion; 0 rejected at parse. JSON count rejected on non-replace ops via the op-kind-gated extra-map check ('all' tolerated). Schema oneOf added; README updated. 28 new tests. 23 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T20:58:08.545485880Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAJom/YBJIs165Qx0bkpq2RR9CBnOY5p0Npt7EauJe3a6lLBnQVOb1YOgE3h/5yfEpEuWOMUMgVmyByAtgH+h4Aw=="
+}
