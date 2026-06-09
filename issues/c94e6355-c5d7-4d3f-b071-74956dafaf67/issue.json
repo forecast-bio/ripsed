@@ -1,0 +1,10 @@
+{
+  "uuid": "c94e6355-c5d7-4d3f-b071-74956dafaf67",
+  "display_id": 98,
+  "title": "Add whole-buffer literal prescreen to skip non-matching files fast",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:21:58.136851849Z",
+  "updated_at": "2026-06-09T20:21:58.136851849Z"
+}
