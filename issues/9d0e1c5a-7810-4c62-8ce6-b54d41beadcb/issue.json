@@ -1,0 +1,10 @@
+{
+  "uuid": "9d0e1c5a-7810-4c62-8ce6-b54d41beadcb",
+  "display_id": 99,
+  "title": "Add comparative benchmark harness and publish results vs sed, sd, perl",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-09T20:22:08.608510233Z",
+  "updated_at": "2026-06-09T20:22:08.608510233Z"
+}
