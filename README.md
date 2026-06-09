@@ -139,6 +139,31 @@ OPTIONS:
         --no-json            Force human mode even if stdin looks like JSON
 ```
 
+## How does this compare to sed and sd?
+
+| | GNU sed | [sd](https://github.com/chmln/sd) | ripsed |
+|---|---|---|---|
+| Recursive file discovery | — (`find`/`xargs`) | — (`find`/`xargs`) | built-in, parallel |
+| `.gitignore`-aware | — | — | ✓ |
+| Literal-by-default patterns | — | partial (regex default) | ✓ |
+| Undo log | — | — | ✓ |
+| Atomic writes + file locking | — | — | ✓ |
+| Dry-run preview with diff | — | `--preview` | ✓ |
+| Multiline matching | scripting (`N;P;D`) | ✓ | ✓ (`-U`) |
+| Pattern-addressed regions | ✓ (`/a/,/b/`) | — | ✓ (`--range`) |
+| Hold space / full sed programs | ✓ | — | — |
+| Structured JSON interface | — | — | ✓ |
+| UTF-16 (BOM) editing | — | — | ✓ |
+| Huge single files | **fastest** | fast | slower today ([why](BENCHMARKS.md)) |
+
+In short: `sed` remains unbeatable for stream-programming and giant
+single files; `sd` is a lean find/replace on explicit file lists;
+ripsed is for **project-wide refactors** — discovery, safety rails
+(dry-run, undo, atomic writes), and an agent-native JSON protocol.
+Honest performance numbers, including the cases ripsed loses, live in
+[BENCHMARKS.md](BENCHMARKS.md). There's also a task-oriented
+[GUIDE.md](GUIDE.md) and a [FAQ](FAQ.md).
+
 ## Exit Codes
 
 ripsed follows the ripgrep convention:

@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero matched files (the response body is unchanged).
 
 ### Added
+- Documentation (#104): task-oriented GUIDE.md (bulk renames, regex
+  captures, multiline refactors, replacement counts, pattern regions,
+  .rip scripts, agent JSON integration, pipelines, undo/safety), a
+  FAQ covering the questions the design actually raises (literal-by-
+  default rationale, `\n` in replacements, exit codes, lock sentinels,
+  encoding policy, undo internals), and an honest sed/sd comparison
+  table in the README including where each tool wins.
 - Fuzzing in CI and coverage tracking (#103): the four libfuzzer
   targets now run as a CI matrix job (60 s each per push/PR, 10
   minutes each on a weekly cron) with crash artifacts uploaded on
