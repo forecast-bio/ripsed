@@ -1,0 +1,10 @@
+{
+  "uuid": "5374d493-369b-4ae9-a76a-746e48bfe68d",
+  "issue_uuid": "8f2e084d-7d64-4005-ab6d-9ae369d92953",
+  "author": "w3Lb",
+  "content": "Delivered in commit 3fcff7a. engine::LineProcessor (shares per-line logic with apply() via extracted dispatch_op; carries RangeFilter/budget/line-counter state across calls; rejects multiline at construction). pipe_mode streaming: per-line terminator passthrough (mixed CRLF/LF byte-exact — strictly better than buffered majority vote), inserted lines take current line's terminator, count-at-EOF, EPIPE = quiet success. main.rs: --pipe and --no-json stream unless -U; autodetect peeks the buffered first chunk without consuming — '{'-prefixed input buffers for JSON detection exactly as before, everything else streams; empty-stdin file-mode fallback preserved. Spec note: the 64MiB stdin cap from the 0.2.5 changelog turned out to no longer exist in the code, so nothing needed removing. The #91-coordination concern resolved cleanly: multiline ops fall back to the buffered path. 18 new tests incl. real-EPIPE child-process e2e and a 4MB stream. 23 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T21:26:29.349467982Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAvo6U3QfaTtWrFYrS+fwwwgnSL6gDipctKqld8NJ2oXa7HpSP/Qq2z1BqYD5XiWHZkD5kHFjo0jl734fTl5v0BQ=="
+}
