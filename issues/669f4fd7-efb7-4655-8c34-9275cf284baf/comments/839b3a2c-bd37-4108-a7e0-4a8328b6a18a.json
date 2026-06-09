@@ -1,0 +1,10 @@
+{
+  "uuid": "839b3a2c-bd37-4108-a7e0-4a8328b6a18a",
+  "issue_uuid": "669f4fd7-efb7-4655-8c34-9275cf284baf",
+  "author": "w3Lb",
+  "content": "Delivered in commit c9d57f2. EXIT_NO_MATCHES=1/EXIT_ERROR=2 in shared.rs; every Err(1) site audited: errors (args/regex/IO/lock/script-parse/JSON-invalid) -> 2; clean no-match -> 1 including 'no files found', pipe passthrough (was 0!), and JSON success-with-zero-matches (response body unchanged); errors take precedence over partial success via had_errors tracking in file/script modes; 'nothing to undo' stays 1. BREAKING flagged loudly in CHANGELOG; README documents the table. 5 existing assertions updated, 7 new taxonomy tests. Bonus: hyperfine in the #99 harness no longer trips on no-match runs only-because-error (the --ignore-failure stays since 1 is still nonzero). 23 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-09T21:55:09.821019524Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAByl0JcYTmQgyPpf1WzSpmmisyzrcE3L0IYoHy99ovw5D48pWYvv/SvYAUkHE/Vyz+X5dxFfvyt/KmBUuLiXtAA=="
+}
