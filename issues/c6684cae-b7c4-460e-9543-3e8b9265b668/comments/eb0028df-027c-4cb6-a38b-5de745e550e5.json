@@ -1,0 +1,10 @@
+{
+  "uuid": "eb0028df-027c-4cb6-a38b-5de745e550e5",
+  "issue_uuid": "c6684cae-b7c4-460e-9543-3e8b9265b668",
+  "author": "w3Lb",
+  "content": "WHY: sed's most-used distinction is s/// (first occurrence per line) vs s///g (all); ripsed only does replace-all. rg has -m for match caps. Agents need 'replace only the first occurrence' constantly. SCOPE: Op IR — add count: ReplaceCount enum { All (default), FirstPerLine, FirstInFile, MaxPerFile(n) } to Op::Replace (serde: \"count\": \"all\"|\"first_per_line\"|\"first_in_file\"|{\"max\": n}, default all, #[non_exhaustive]). Engine: Matcher::replace gains a count-aware variant (Regex::replace vs replace_all; literal str::replacen); FirstInFile/MaxPerFile thread remaining-budget state through the apply loop. CLI: --first (first per line), --first-in-file, --max-replacements N; mutually exclusive group in clap. JSON + script mode parity. TESTS: per-line vs in-file semantics on a line with 3 matches and a file with matches on 3 lines; budget exhausted mid-file; count metadata in summary.total_replacements stays accurate; proptest: FirstPerLine changes == matching lines count.",
+  "created_at": "2026-06-09T20:20:53.168976251Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA2XoI+a6d7pWMqMA9Dc8K/bUphGnKnE9wwXipWZzmFlT9KclhXmKufBHYLKH5N90kQr4BGNj5fVNaWBjohj0OAA=="
+}
