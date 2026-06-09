@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Semver-compatible dependency refresh via `cargo update` (regex,
+  serde_json, libc, ignore, zerocopy, shlex 1→2 transitive, and
+  others), including the fuzz workspace lockfile. No advisories
+  (`cargo audit` clean). (#86)
+- Harden test suite: remove tautologies, add adversarial tests (#84)
+- Replace process::exit calls in run() with Result propagation; the
+  only `process::exit` is now in `main()` after `run()` returns, so
+  RAII destructors (file locks, temp files) always execute (#22)
+
 ## [0.2.9] - 2026-04-17
 
 ### Fixed
