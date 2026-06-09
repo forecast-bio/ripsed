@@ -1,0 +1,10 @@
+{
+  "uuid": "7761ae52-097e-4f5d-ae0f-0f6d45f0e8d6",
+  "issue_uuid": "7548ae3e-a47e-4177-9808-daa2ad3b6766",
+  "author": "w3Lb",
+  "content": "Delivered in commit d06cb20. cargo xtask gen-completions: clap_complete (bash/zsh/fish/powershell) + clap_mangen (ripsed.1) into dist/, generated from the real Cli via a new minimal ripsed-cli lib target (#[path]-exposed args module, documented as build-tooling-only). Release workflow ships completions/ + man page in every artifact; CI gen-check added so Cli changes that break generation fail fast; dist/ gitignored. Verified locally: all four shells + man page generate, new flags (--multiline/--threads/--range etc) present in output. 25 suites green (lib target added 2), clippy/fmt clean.",
+  "created_at": "2026-06-09T21:58:41.255957659Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAMtKfl4ddglrqc11vPW+afzzJJAhEu9RsWGZm6VduXI7HAH1fRbknWskLs4g4GyJWfEtejOIX97U8SonsfkywDA=="
+}
