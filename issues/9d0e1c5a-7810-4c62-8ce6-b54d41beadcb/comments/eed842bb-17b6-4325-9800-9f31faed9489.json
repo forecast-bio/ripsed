@@ -1,0 +1,10 @@
+{
+  "uuid": "eed842bb-17b6-4325-9800-9f31faed9489",
+  "issue_uuid": "9d0e1c5a-7810-4c62-8ce6-b54d41beadcb",
+  "author": "w3Lb",
+  "content": "Delivered in commit e0f4101. cargo xtask bench-compare (+--quick): 3 corpora (1000-file tree ~10% matching, no-match tree, 64MiB single file), hyperfine with pristine-corpus --prepare per iteration, sed/sd/perl via find|xargs (no discovery of their own), ripsed's discovery+undo+atomic writes deliberately inside the measurement, markdown tables from JSON exports, missing tools skipped. Installed sd for the comparison. RESULTS published in BENCHMARKS.md per the honesty rule: WIN tree-no-match (177ms vs 240-264ms — prescreen showcase); LOSS tree-replace on mean (472ms vs ~240-280ms, WSL2 variance — best min of the four); LOSS big-file ~6x (6.3s vs 1.0s) — root-caused to undo log serializing a JSON-escaped copy of the entire original; follow-up #106 filed (cap/--no-undo/file-per-entry proposals) and linked. README now links BENCHMARKS.md instead of bare 'Fast' claim. Harness needed hyperfine --ignore-failure because of the exit-1-on-no-match semantics #100 fixes next. Not run in CI by design (noisy shared runners).",
+  "created_at": "2026-06-09T21:47:48.493772862Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAscay4KR08lrTdQNGR7ibdbG1wBr74qumFJPcIQ/o5qRLNLed23YZhMtii2Kd/de6QS99HT/hdxs1+fv9E6c3BQ=="
+}
