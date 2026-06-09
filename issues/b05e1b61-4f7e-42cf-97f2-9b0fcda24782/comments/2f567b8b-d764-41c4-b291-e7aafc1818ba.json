@@ -1,0 +1,10 @@
+{
+  "uuid": "2f567b8b-d764-41c4-b291-e7aafc1818ba",
+  "issue_uuid": "b05e1b61-4f7e-42cf-97f2-9b0fcda24782",
+  "author": "w3Lb",
+  "content": "Delivered in commit 65441eb (on top of the April 17 sweep already documented above, which had left this issue open). 2026-06-09 refresh: cargo update on main + fuzz workspaces (regex 1.12.4, serde_json 1.0.150, libc 0.2.186, ignore 0.4.26, zerocopy 0.8.51, wasm-bindgen 0.2.123, shlex 1->2 transitive, etc). cargo outdated --root-deps-only: all direct deps current; cargo audit: clean; MSRV unchanged at 1.93. Verified: 23 test suites green, clippy -D warnings clean, fmt clean, Windows-target check passes, benches build.",
+  "created_at": "2026-06-09T19:54:24.266762140Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAtQkE5dkUZC0FnI4EL3iQoJQKfRByhZRVDn98I4Qr+f9bexsZ9IFPGqe2OgQjsZCJxiKrHTAyyNo5xIkDZaFCDA=="
+}
