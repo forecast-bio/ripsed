@@ -1,0 +1,10 @@
+{
+  "uuid": "48200d6f-5d98-4e70-a569-4b44cd0100ea",
+  "issue_uuid": "3f87d89a-ce7d-451f-8dc2-c3eacae9fc27",
+  "author": "w3Lb",
+  "content": "WHY: rg ships GUIDE.md + FAQ.md; ripsed's README is good but there's no task-oriented guide, and the README never mentions sd — the incumbent 'sed in Rust' — so the positioning question every evaluator asks ('why not sd?') goes unanswered. SCOPE: (1) GUIDE.md: task-oriented walkthroughs — bulk rename across a repo, multi-step .rip refactor, agent JSON integration end-to-end (request/response/undo), undo workflows, config file. (2) FAQ.md: why literal-by-default (vs rg regex-default), exit codes (after #100), how binary/encoding handling works, lock files explained (the *.ripsed.lock sentinels confuse people — see #84 gitignore addition), 64MiB cap rationale. (3) README comparison section: honest table vs sd and GNU sed — recursion, gitignore-awareness, undo, atomic writes, JSON mode, script files; link benchmarks when #99 lands. Keep claims verifiable; no benchmark numbers until #99.",
+  "created_at": "2026-06-09T20:24:27.042996938Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAkQ7hB6vHAaIpF4HE3iqzhsni0jUe6ECBeR0kQ+ztp9aRgFnMlt6LFY6G0DpfVNQ6bcbEmzKjZAi5FWyRnok7CA=="
+}
