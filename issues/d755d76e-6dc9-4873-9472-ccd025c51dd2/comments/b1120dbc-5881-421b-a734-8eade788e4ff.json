@@ -1,0 +1,10 @@
+{
+  "uuid": "b1120dbc-5881-421b-a734-8eade788e4ff",
+  "issue_uuid": "d755d76e-6dc9-4873-9472-ccd025c51dd2",
+  "author": "w3Lb",
+  "content": "Plan refinements from design pass: (1) NO new dependency — encoding_rs cannot ENCODE to UTF-16 (WHATWG standard is decode-only for UTF-16); std covers everything: String::from_utf16 for decode, str::encode_utf16 for encode, manual BOM handling. (2) CRITICAL interaction found: UTF-16 text is full of NUL bytes, so the existing binary-detection (NUL in first 8KB) currently excludes UTF-16 files from discovery entirely — fix detection to exempt UTF-16 BOMs first. Implementation: new ripsed-fs encoding module (SourceEncoding {Utf8, Utf8Bom, Utf16Le, Utf16Be}, detect/decode/encode, string tags for serialization); reader::read_file_with_encoding; writer::write_atomic_encoded re-attaching BOM + re-encoding; discovery binary-check exempts FF FE / FE FF prefixes; UndoRecord gains optional encoding tag (serde default None = utf-8, back-compat with existing logs) so undo restores original bytes exactly; thread encoding through file/script/json modes + facade. Truncated UTF-16 (odd byte count) and unpaired surrogates -> clean io::Error, never panic. UTF-8 BOM: strip on read so patterns anchor correctly at line 1, re-attach on write.",
+  "created_at": "2026-06-09T21:12:45.364103277Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAI2o8PPcYNIvCjK630RVG5k01Wx5UuvyDrH2lZ3oct7GNg2gNmFsbP9OAMm3CDnPlIZEIbskP+ERzmrudn2g6CA=="
+}
