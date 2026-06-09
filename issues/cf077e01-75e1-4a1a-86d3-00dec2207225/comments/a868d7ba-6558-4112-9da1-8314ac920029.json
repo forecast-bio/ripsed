@@ -1,0 +1,10 @@
+{
+  "uuid": "a868d7ba-6558-4112-9da1-8314ac920029",
+  "issue_uuid": "cf077e01-75e1-4a1a-86d3-00dec2207225",
+  "author": "w3Lb",
+  "content": "Delivered in commit 2743405. CI fuzz matrix job: 4 targets x 60s on push/PR, 600s on weekly Monday cron + workflow_dispatch, nightly+cargo-fuzz, crash artifacts uploaded on failure; committed seed corpus per target (regex pathologies, CRLF text, valid/malformed JSON, JSON-lookalike pipe input). Coverage: continue-on-error cargo-llvm-cov job emits lcov.info + text summary as artifacts (no external service; Codecov can layer on later). WAR STORY for the knowledge base: verification appeared wedged for 37min — cargo test --workspace was silently running the fuzz workspace because the persistent shell cwd had drifted into fuzz/corpus/, and libfuzzer binaries run forever as 'tests'; initially misdiagnosed as a stuck sccache server. Diagnose via /proc/<cargo-pid> children + cwd. 25 suites green from repo root.",
+  "created_at": "2026-06-09T23:17:08.908344682Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAsG2ACl1cFYb7NKXOZaF+dMPKhnGTyjSnqFbPhKKjKRQTGXzAAgtLTKvvbliDrXYtKqqIBkNEAz7uTqhCbgWvBQ=="
+}
