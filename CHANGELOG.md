@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero matched files (the response body is unchanged).
 
 ### Added
+- Fuzzing in CI and coverage tracking (#103): the four libfuzzer
+  targets now run as a CI matrix job (60 s each per push/PR, 10
+  minutes each on a weekly cron) with crash artifacts uploaded on
+  failure and a committed seed corpus; a `cargo llvm-cov` job
+  publishes lcov + summary as workflow artifacts.
 - Distribution packaging (#102): crates.io metadata (keywords,
   categories, homepage) on all five crates and a real description for
   `ripsed-cli`; `cargo install ripsed-cli` documented as the primary

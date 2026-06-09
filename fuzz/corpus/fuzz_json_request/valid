@@ -1,0 +1,1 @@
+{"version":"1","operations":[{"op":"replace","find":"a","replace":"b","multiline":true,"count":{"max":2}}],"options":{"dry_run":true}}
