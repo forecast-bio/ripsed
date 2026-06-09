@@ -1,23 +1,8 @@
+mod common;
+
+use common::*;
 use std::fs;
 use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files and return the dir.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 /// Run `git init` in the given directory.
 fn git_init(dir: &TempDir) {
@@ -39,7 +24,7 @@ fn git_init(dir: &TempDir) {
 
 #[test]
 fn gitignore_excludes_matching_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("readme.txt", "target_word in readme\n"),
         ("debug.log", "target_word in log\n"),
         (".gitignore", "*.log\n"),
@@ -69,7 +54,7 @@ fn gitignore_excludes_matching_files() {
 
 #[test]
 fn no_gitignore_flag_includes_ignored_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("readme.txt", "target_word in readme\n"),
         ("debug.log", "target_word in log\n"),
         (".gitignore", "*.log\n"),
@@ -98,7 +83,7 @@ fn no_gitignore_flag_includes_ignored_files() {
 
 #[test]
 fn nested_gitignore_in_subdirectory() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("top.txt", "target_word in top\n"),
         ("sub/code.txt", "target_word in sub\n"),
         ("sub/temp.tmp", "target_word in tmp\n"),
@@ -137,7 +122,7 @@ fn nested_gitignore_in_subdirectory() {
 
 #[test]
 fn gitignore_with_directory_pattern() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("src/main.txt", "target_word in src\n"),
         ("build/output.txt", "target_word in build\n"),
         (".gitignore", "build/\n"),
@@ -171,7 +156,7 @@ fn gitignore_with_directory_pattern() {
 
 #[test]
 fn json_gitignore_excludes_matching_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("readme.txt", "target_word in readme\n"),
         ("debug.log", "target_word in log\n"),
         (".gitignore", "*.log\n"),
@@ -212,7 +197,7 @@ fn json_gitignore_excludes_matching_files() {
 
 #[test]
 fn json_gitignore_false_includes_ignored_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("readme.txt", "target_word in readme\n"),
         ("debug.log", "target_word in log\n"),
         (".gitignore", "*.log\n"),
@@ -252,7 +237,7 @@ fn json_gitignore_false_includes_ignored_files() {
 
 #[test]
 fn json_gitignore_respects_directory_pattern() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("src/main.txt", "target_word in src\n"),
         ("build/output.txt", "target_word in build\n"),
         (".gitignore", "build/\n"),

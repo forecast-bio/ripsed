@@ -1,23 +1,8 @@
+mod common;
+
+use common::*;
 use std::fs;
 use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files and return the dir.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 // ---------------------------------------------------------------------------
 // Task 4: cross-platform behavior tests
@@ -83,7 +68,7 @@ fn unicode_filenames_are_processed() {
 
 #[test]
 fn unicode_content_is_handled_correctly() {
-    let dir = setup_test(&[("unicode.txt", "Hello \u{4e16}\u{754c}\n")]);
+    let dir = setup_files(&[("unicode.txt", "Hello \u{4e16}\u{754c}\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["Hello", "Goodbye"])
@@ -141,7 +126,7 @@ fn mixed_line_endings_in_same_file() {
 
 #[test]
 fn json_mode_with_escaped_path() {
-    let dir = setup_test(&[("test.txt", "old_value\n")]);
+    let dir = setup_files(&[("test.txt", "old_value\n")]);
 
     let request = format!(
         r#"{{

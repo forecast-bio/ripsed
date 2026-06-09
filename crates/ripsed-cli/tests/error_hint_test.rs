@@ -1,27 +1,11 @@
+mod common;
+
+use common::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 #[test]
 fn invalid_regex_error_has_hint_and_pattern_in_context() {
-    let dir = setup_test(&[("test.txt", "some content\n")]);
+    let dir = setup_files(&[("test.txt", "some content\n")]);
 
     let request = format!(
         r#"{{
@@ -164,7 +148,7 @@ fn unknown_version_error_has_hint_with_supported_versions() {
 
 #[test]
 fn invalid_regex_error_includes_operation_index() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     // Send a batch where the second operation has an invalid regex
     let request = format!(
@@ -202,7 +186,7 @@ fn invalid_regex_error_includes_operation_index() {
 
 #[test]
 fn no_matches_in_human_mode_prints_to_stderr() {
-    let dir = setup_test(&[("test.txt", "hello world\n")]);
+    let dir = setup_files(&[("test.txt", "hello world\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["zzz_no_match_pattern_zzz", "replacement"])
@@ -218,7 +202,7 @@ fn no_matches_in_human_mode_prints_to_stderr() {
 
 #[test]
 fn invalid_regex_in_human_mode_prints_error() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["-e", "[unclosed", "replacement"])
@@ -254,7 +238,7 @@ fn all_error_codes_produce_nonempty_hints() {
 
     // 2. invalid_regex: bad regex pattern
     {
-        let dir = setup_test(&[("t.txt", "x\n")]);
+        let dir = setup_files(&[("t.txt", "x\n")]);
         let request = format!(
             r#"{{
                 "version": "1",

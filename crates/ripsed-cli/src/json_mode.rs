@@ -348,13 +348,11 @@ mod tests {
             }}"#
         );
 
-        let _config = Config::default();
-        // Dry run — file should not be modified
-        // We can't easily capture stdout from run_json_mode since it calls process::exit
-        // on errors, but we can at least test that the file is unchanged.
-        // Instead, test the core logic directly.
-        let request = JsonRequest::parse(&input).unwrap();
-        assert!(request.options.dry_run);
+        let config = Config::default();
+        // Actually run the mode: the operation matches, so the run succeeds,
+        // but dry_run must prevent the write from landing.
+        let result = run_json_mode(&input, &config, false);
+        assert_eq!(result, Ok(()), "dry-run with a match should succeed");
 
         // File should remain unchanged
         let content = fs::read_to_string(&file_path).unwrap();

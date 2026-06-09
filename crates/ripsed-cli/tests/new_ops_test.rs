@@ -1,22 +1,8 @@
+mod common;
+
+use common::*;
 use predicates::prelude::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp directory with a single text file.
-fn setup_single_file(filename: &str, content: &str) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    let file_path = dir.path().join(filename);
-    if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    fs::write(&file_path, content).unwrap();
-    dir
-}
 
 // ── Transform tests ──
 

@@ -1,23 +1,7 @@
+mod common;
+
+use common::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files and return the dir.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 // ---------------------------------------------------------------------------
 // Task 5: atomic write behavior tests
@@ -25,7 +9,7 @@ fn setup_test(files: &[(&str, &str)]) -> TempDir {
 
 #[test]
 fn backup_flag_creates_bak_file() {
-    let dir = setup_test(&[("data.txt", "original content\n")]);
+    let dir = setup_files(&[("data.txt", "original content\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["--backup", "original", "modified"])
@@ -52,7 +36,7 @@ fn backup_flag_creates_bak_file() {
 
 #[test]
 fn backup_with_numbered_suffixes_when_backup_exists() {
-    let dir = setup_test(&[("data.txt", "version one\n")]);
+    let dir = setup_files(&[("data.txt", "version one\n")]);
 
     // First replacement with backup
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -106,7 +90,7 @@ fn backup_with_numbered_suffixes_when_backup_exists() {
 
 #[test]
 fn backup_with_three_successive_backups() {
-    let dir = setup_test(&[("notes.txt", "rev_a\n")]);
+    let dir = setup_files(&[("notes.txt", "rev_a\n")]);
 
     // Replacement 1
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -150,7 +134,7 @@ fn backup_with_three_successive_backups() {
 
 #[test]
 fn backup_for_file_without_extension() {
-    let dir = setup_test(&[("Makefile", "old_target: build\n")]);
+    let dir = setup_files(&[("Makefile", "old_target: build\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["--backup", "old_target", "new_target"])
@@ -176,7 +160,7 @@ fn backup_for_file_without_extension() {
 
 #[test]
 fn dry_run_does_not_create_backup() {
-    let dir = setup_test(&[("test.txt", "original content\n")]);
+    let dir = setup_files(&[("test.txt", "original content\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args(["--backup", "--dry-run", "original", "modified"])
@@ -201,7 +185,7 @@ fn dry_run_does_not_create_backup() {
 
 #[test]
 fn backup_across_multiple_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("first.txt", "common_word here\n"),
         ("second.txt", "common_word there\n"),
     ]);
@@ -240,7 +224,7 @@ fn backup_across_multiple_files() {
 
 #[test]
 fn json_backup_creates_bak_file() {
-    let dir = setup_test(&[("data.txt", "original content\n")]);
+    let dir = setup_files(&[("data.txt", "original content\n")]);
 
     let request = format!(
         r#"{{
@@ -275,7 +259,7 @@ fn json_backup_creates_bak_file() {
 
 #[test]
 fn json_dry_run_does_not_create_backup() {
-    let dir = setup_test(&[("test.txt", "original content\n")]);
+    let dir = setup_files(&[("test.txt", "original content\n")]);
 
     let request = format!(
         r#"{{
@@ -309,7 +293,7 @@ fn json_dry_run_does_not_create_backup() {
 
 #[test]
 fn json_atomic_batch_writes_all_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("first.txt", "common_word here\n"),
         ("second.txt", "common_word there\n"),
     ]);
@@ -350,7 +334,7 @@ fn json_atomic_batch_writes_all_files() {
 
 #[test]
 fn json_backup_across_multiple_files() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("first.txt", "common_word here\n"),
         ("second.txt", "common_word there\n"),
     ]);

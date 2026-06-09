@@ -51,14 +51,91 @@ pub fn confirm_file(path: &Path, changes: &[Change]) -> ConfirmAction {
 
     let mut response = String::new();
     if io::stdin().read_line(&mut response).is_ok() {
-        match response.trim().to_lowercase().as_str() {
-            "y" | "yes" => ConfirmAction::Yes,
-            "a" | "all" => ConfirmAction::ApplyAll,
-            "s" | "skip" => ConfirmAction::SkipFile,
-            "q" | "quit" => ConfirmAction::Quit,
-            _ => ConfirmAction::No,
-        }
+        parse_confirm_response(&response)
     } else {
         ConfirmAction::Quit
+    }
+}
+
+/// Map a raw prompt response to a [`ConfirmAction`].
+///
+/// Matching is case-insensitive and ignores surrounding whitespace.
+/// Anything unrecognized — including an empty line or EOF — is `No`,
+/// so the safe choice is always the default.
+fn parse_confirm_response(response: &str) -> ConfirmAction {
+    match response.trim().to_lowercase().as_str() {
+        "y" | "yes" => ConfirmAction::Yes,
+        "a" | "all" => ConfirmAction::ApplyAll,
+        "s" | "skip" => ConfirmAction::SkipFile,
+        "q" | "quit" => ConfirmAction::Quit,
+        _ => ConfirmAction::No,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn yes_variants_map_to_yes() {
+        for input in ["y", "yes", "Y", "YES", "Yes", "  y  ", "y\n", "yes\r\n"] {
+            assert_eq!(
+                parse_confirm_response(input),
+                ConfirmAction::Yes,
+                "input {input:?} should be Yes"
+            );
+        }
+    }
+
+    #[test]
+    fn all_variants_map_to_apply_all() {
+        for input in ["a", "all", "A", "ALL", "all\n"] {
+            assert_eq!(parse_confirm_response(input), ConfirmAction::ApplyAll);
+        }
+    }
+
+    #[test]
+    fn skip_variants_map_to_skip_file() {
+        for input in ["s", "skip", "S", "SKIP", "skip\n"] {
+            assert_eq!(parse_confirm_response(input), ConfirmAction::SkipFile);
+        }
+    }
+
+    #[test]
+    fn quit_variants_map_to_quit() {
+        for input in ["q", "quit", "Q", "QUIT", "quit\n"] {
+            assert_eq!(parse_confirm_response(input), ConfirmAction::Quit);
+        }
+    }
+
+    #[test]
+    fn explicit_no_maps_to_no() {
+        for input in ["n", "no", "N", "NO", "no\n"] {
+            assert_eq!(parse_confirm_response(input), ConfirmAction::No);
+        }
+    }
+
+    #[test]
+    fn empty_input_defaults_to_no() {
+        // read_line yields "" at EOF and "\n" for a bare Enter — both must
+        // default to the safe answer, not apply changes.
+        for input in ["", "\n", "\r\n", "   ", "\t\n"] {
+            assert_eq!(
+                parse_confirm_response(input),
+                ConfirmAction::No,
+                "input {input:?} should default to No"
+            );
+        }
+    }
+
+    #[test]
+    fn unrecognized_input_defaults_to_no() {
+        for input in ["x", "yep", "nah", "quit now", "ja", "1", "true", "ye s"] {
+            assert_eq!(
+                parse_confirm_response(input),
+                ConfirmAction::No,
+                "input {input:?} should default to No"
+            );
+        }
     }
 }

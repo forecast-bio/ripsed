@@ -1,24 +1,8 @@
+mod common;
+
+use common::*;
 use predicates::prelude::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files and return the dir.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 // ---------------------------------------------------------------------------
 // Task 1: undo end-to-end tests
@@ -26,7 +10,7 @@ fn setup_test(files: &[(&str, &str)]) -> TempDir {
 
 #[test]
 fn undo_restores_file_after_replacement() {
-    let dir = setup_test(&[("test.txt", "hello world\n")]);
+    let dir = setup_files(&[("test.txt", "hello world\n")]);
 
     // Apply replacement (file mode, cwd = temp dir)
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -53,7 +37,7 @@ fn undo_restores_file_after_replacement() {
 
 #[test]
 fn undo_multiple_operations_with_count() {
-    let dir = setup_test(&[("a.txt", "alpha content\n"), ("b.txt", "alpha content\n")]);
+    let dir = setup_files(&[("a.txt", "alpha content\n"), ("b.txt", "alpha content\n")]);
 
     // First replacement: alpha -> beta (affects both files)
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -92,7 +76,7 @@ fn undo_multiple_operations_with_count() {
 
 #[test]
 fn undo_on_empty_log_exits_with_code_1() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     // No prior operations, so undo log is empty
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -106,7 +90,7 @@ fn undo_on_empty_log_exits_with_code_1() {
 
 #[test]
 fn undo_list_shows_entries_after_operations() {
-    let dir = setup_test(&[("test.txt", "hello world\n")]);
+    let dir = setup_files(&[("test.txt", "hello world\n")]);
 
     // Apply a replacement to create an undo entry
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -126,7 +110,7 @@ fn undo_list_shows_entries_after_operations() {
 
 #[test]
 fn undo_list_on_empty_log_prints_message() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     // No prior operations
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -139,7 +123,7 @@ fn undo_list_on_empty_log_prints_message() {
 
 #[test]
 fn undo_after_multiple_separate_operations() {
-    let dir = setup_test(&[("test.txt", "aaa bbb ccc\n")]);
+    let dir = setup_files(&[("test.txt", "aaa bbb ccc\n")]);
 
     // First replacement: aaa -> xxx
     assert_cmd::cargo_bin_cmd!("ripsed")
@@ -196,7 +180,7 @@ fn undo_after_multiple_separate_operations() {
 
 #[test]
 fn json_undo_restores_file_after_replacement() {
-    let dir = setup_test(&[("test.txt", "hello world\n")]);
+    let dir = setup_files(&[("test.txt", "hello world\n")]);
 
     // Apply replacement via JSON mode (dry_run: false)
     let request = format!(
@@ -245,7 +229,7 @@ fn json_undo_restores_file_after_replacement() {
 
 #[test]
 fn json_undo_on_empty_log_reverts_zero() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     let undo_request = r#"{"undo": {"last": 1}}"#;
     let output = assert_cmd::cargo_bin_cmd!("ripsed")
@@ -264,7 +248,7 @@ fn json_undo_on_empty_log_reverts_zero() {
 
 #[test]
 fn json_undo_multiple_with_count() {
-    let dir = setup_test(&[("a.txt", "alpha content\n"), ("b.txt", "alpha content\n")]);
+    let dir = setup_files(&[("a.txt", "alpha content\n"), ("b.txt", "alpha content\n")]);
 
     // Replace alpha -> beta via JSON (affects both files)
     let request = format!(

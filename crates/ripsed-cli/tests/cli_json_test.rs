@@ -1,32 +1,11 @@
+mod common;
+
+use common::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files and return the dir.
-fn setup_json_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
-
-/// Helper: build a JSON request string from parts.
-fn json_request(operations: &str, options: &str) -> String {
-    format!(r#"{{"version": "1", "operations": [{operations}], "options": {{{options}}}}}"#)
-}
 
 #[test]
 fn json_single_replace_response_schema() {
-    let dir = setup_json_test(&[("test.txt", "old_value here\n")]);
+    let dir = setup_files(&[("test.txt", "old_value here\n")]);
 
     let request = json_request(
         r#"{"op": "replace", "find": "old_value", "replace": "new_value"}"#,
@@ -63,7 +42,7 @@ fn json_single_replace_response_schema() {
 
 #[test]
 fn json_batch_operations_with_operation_index() {
-    let dir = setup_json_test(&[("code.txt", "foo_val\nbar_val\nbaz_val\n")]);
+    let dir = setup_files(&[("code.txt", "foo_val\nbar_val\nbaz_val\n")]);
 
     let request = format!(
         r#"{{
@@ -105,7 +84,7 @@ fn json_batch_operations_with_operation_index() {
 
 #[test]
 fn json_dry_run_defaults_to_true() {
-    let dir = setup_json_test(&[("test.txt", "original text\n")]);
+    let dir = setup_files(&[("test.txt", "original text\n")]);
 
     // No dry_run in options -- should default to true
     let request = format!(
@@ -141,7 +120,7 @@ fn json_dry_run_defaults_to_true() {
 
 #[test]
 fn json_dry_run_false_modifies_files() {
-    let dir = setup_json_test(&[("test.txt", "original text\n")]);
+    let dir = setup_files(&[("test.txt", "original text\n")]);
 
     let request = format!(
         r#"{{
@@ -180,7 +159,7 @@ fn json_dry_run_false_modifies_files() {
 
 #[test]
 fn json_invalid_regex_error_response() {
-    let dir = setup_json_test(&[("test.txt", "some content\n")]);
+    let dir = setup_files(&[("test.txt", "some content\n")]);
 
     let request = format!(
         r#"{{
@@ -289,7 +268,7 @@ fn json_empty_operations_error() {
 
 #[test]
 fn json_replace_operation() {
-    let dir = setup_json_test(&[("data.txt", "alpha beta gamma\n")]);
+    let dir = setup_files(&[("data.txt", "alpha beta gamma\n")]);
 
     let request = format!(
         r#"{{
@@ -314,7 +293,7 @@ fn json_replace_operation() {
 
 #[test]
 fn json_delete_operation() {
-    let dir = setup_json_test(&[("data.txt", "keep\nremove this\nkeep too\n")]);
+    let dir = setup_files(&[("data.txt", "keep\nremove this\nkeep too\n")]);
 
     let request = format!(
         r#"{{
@@ -341,7 +320,7 @@ fn json_delete_operation() {
 
 #[test]
 fn json_insert_after_operation() {
-    let dir = setup_json_test(&[("data.txt", "line one\nmarker line\nline three\n")]);
+    let dir = setup_files(&[("data.txt", "line one\nmarker line\nline three\n")]);
 
     let request = format!(
         r#"{{
@@ -372,7 +351,7 @@ fn json_insert_after_operation() {
 
 #[test]
 fn json_insert_before_operation() {
-    let dir = setup_json_test(&[("data.txt", "line one\nmarker line\nline three\n")]);
+    let dir = setup_files(&[("data.txt", "line one\nmarker line\nline three\n")]);
 
     let request = format!(
         r#"{{
@@ -404,7 +383,7 @@ fn json_insert_before_operation() {
 
 #[test]
 fn json_replace_line_operation() {
-    let dir = setup_json_test(&[("data.txt", "keep\nold line content\nkeep too\n")]);
+    let dir = setup_files(&[("data.txt", "keep\nold line content\nkeep too\n")]);
 
     let request = format!(
         r#"{{
@@ -431,7 +410,7 @@ fn json_replace_line_operation() {
 
 #[test]
 fn json_response_has_change_details() {
-    let dir = setup_json_test(&[("test.txt", "aaa\nbbb\nccc\n")]);
+    let dir = setup_files(&[("test.txt", "aaa\nbbb\nccc\n")]);
 
     let request = format!(
         r#"{{
@@ -468,7 +447,7 @@ fn json_response_has_change_details() {
 
 #[test]
 fn json_regex_replace() {
-    let dir = setup_json_test(&[("code.txt", "fn old_handler() {\n}\n")]);
+    let dir = setup_files(&[("code.txt", "fn old_handler() {\n}\n")]);
 
     let request = format!(
         r#"{{
@@ -499,7 +478,7 @@ fn json_regex_replace() {
 
 #[test]
 fn json_per_operation_glob() {
-    let dir = setup_json_test(&[
+    let dir = setup_files(&[
         ("code.rs", "target_string\n"),
         ("code.py", "target_string\n"),
     ]);
@@ -537,7 +516,7 @@ fn json_per_operation_glob() {
 
 #[test]
 fn json_case_insensitive_replace() {
-    let dir = setup_json_test(&[("test.txt", "Hello World\nhello world\nHELLO WORLD\n")]);
+    let dir = setup_files(&[("test.txt", "Hello World\nhello world\nHELLO WORLD\n")]);
 
     let request = format!(
         r#"{{

@@ -1,23 +1,7 @@
+mod common;
+
+use common::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files and return the dir.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 // ---------------------------------------------------------------------------
 // Task 3: config file handling tests
@@ -25,7 +9,7 @@ fn setup_test(files: &[(&str, &str)]) -> TempDir {
 
 #[test]
 fn config_backup_true_creates_bak_file() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("test.txt", "original content\n"),
         (".ripsed.toml", "[defaults]\nbackup = true\n"),
     ]);
@@ -58,7 +42,7 @@ fn config_backup_true_creates_bak_file() {
 
 #[test]
 fn config_flag_loads_specific_config_file() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("test.txt", "original content\n"),
         ("custom-config.toml", "[defaults]\nbackup = true\n"),
     ]);
@@ -91,7 +75,7 @@ fn config_flag_loads_specific_config_file() {
 
 #[test]
 fn config_discovery_walks_up_directories() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         (".ripsed.toml", "[defaults]\nbackup = true\n"),
         ("child/deep/test.txt", "original content\n"),
     ]);
@@ -122,7 +106,7 @@ fn config_discovery_walks_up_directories() {
 #[test]
 fn cli_flag_overrides_config_backup() {
     // Config says backup = false (the default), but we pass --backup on CLI
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("test.txt", "original content\n"),
         (".ripsed.toml", "[defaults]\nbackup = false\n"),
     ]);
@@ -143,7 +127,7 @@ fn cli_flag_overrides_config_backup() {
 
 #[test]
 fn config_without_backup_does_not_create_bak_file() {
-    let dir = setup_test(&[
+    let dir = setup_files(&[
         ("test.txt", "original content\n"),
         (".ripsed.toml", "[defaults]\nbackup = false\n"),
     ]);
@@ -168,7 +152,7 @@ fn config_without_backup_does_not_create_bak_file() {
 
 #[test]
 fn missing_config_file_via_flag_exits_with_error() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     assert_cmd::cargo_bin_cmd!("ripsed")
         .args([
@@ -188,7 +172,7 @@ fn missing_config_file_via_flag_exits_with_error() {
 
 #[test]
 fn json_mode_backup_option_creates_bak_file() {
-    let dir = setup_test(&[("test.txt", "original content\n")]);
+    let dir = setup_files(&[("test.txt", "original content\n")]);
 
     let request = format!(
         r#"{{
@@ -226,7 +210,7 @@ fn json_mode_backup_option_creates_bak_file() {
 
 #[test]
 fn json_mode_without_backup_option_does_not_create_bak() {
-    let dir = setup_test(&[("test.txt", "original content\n")]);
+    let dir = setup_files(&[("test.txt", "original content\n")]);
 
     let request = format!(
         r#"{{
@@ -257,7 +241,7 @@ fn json_mode_without_backup_option_does_not_create_bak() {
 
 #[test]
 fn json_mode_dry_run_true_does_not_modify_file() {
-    let dir = setup_test(&[("test.txt", "original content\n")]);
+    let dir = setup_files(&[("test.txt", "original content\n")]);
 
     // dry_run defaults to true in JSON mode
     let request = format!(

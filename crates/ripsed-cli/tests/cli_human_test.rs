@@ -1,32 +1,11 @@
+mod common;
+
+use common::*;
 use predicates::prelude::*;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 use tempfile::TempDir;
-
-/// Helper: create a temp directory with a single text file.
-fn setup_single_file(filename: &str, content: &str) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    let file_path = dir.path().join(filename);
-    if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    fs::write(&file_path, content).unwrap();
-    dir
-}
-
-/// Helper: create a temp directory with multiple files.
-fn setup_multi_file(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 #[test]
 fn simple_replace_modifies_file() {
@@ -83,7 +62,12 @@ fn dry_run_does_not_modify_files() {
         .args(["--dry-run", "hello", "goodbye"])
         .current_dir(dir.path())
         .assert()
-        .success();
+        .success()
+        // The preview must actually show the proposed replacement — a
+        // dry run that silently does nothing would also leave the file
+        // unchanged, so checking the file alone proves nothing.
+        .stdout(predicate::str::contains("goodbye world"))
+        .stdout(predicate::str::contains("goodbye again"));
 
     let content = fs::read_to_string(dir.path().join("test.txt")).unwrap();
     assert_eq!(
@@ -101,9 +85,11 @@ fn dry_run_prints_diff_to_stdout() {
         .current_dir(dir.path())
         .assert()
         .success()
-        .stdout(
-            predicate::str::contains("hello world").or(predicate::str::contains("goodbye world")),
-        );
+        // A diff shows both sides: the line being removed and the line
+        // replacing it. Requiring only one of the two would pass even if
+        // the diff rendered nothing useful.
+        .stdout(predicate::str::contains("hello world"))
+        .stdout(predicate::str::contains("goodbye world"));
 }
 
 #[test]
@@ -166,7 +152,7 @@ fn case_insensitive_replace() {
 
 #[test]
 fn glob_filter_only_touches_matching_files() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("code.rs", "old_name\n"),
         ("readme.txt", "old_name\n"),
         ("data.rs", "old_name\n"),
@@ -339,7 +325,7 @@ fn replace_line_in_pipe_mode() {
 
 #[test]
 fn multiple_files_in_directory() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("a.txt", "hello from a\n"),
         ("b.txt", "hello from b\n"),
         ("sub/c.txt", "hello from c\n"),
@@ -362,7 +348,7 @@ fn multiple_files_in_directory() {
 
 #[test]
 fn hidden_files_ignored_by_default() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("visible.txt", "target_text\n"),
         (".hidden.txt", "target_text\n"),
     ]);
@@ -388,7 +374,7 @@ fn hidden_files_ignored_by_default() {
 
 #[test]
 fn hidden_files_included_with_flag() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("visible.txt", "target_text\n"),
         (".hidden.txt", "target_text\n"),
     ]);
@@ -425,7 +411,7 @@ fn replace_empty_string_removes_occurrences() {
 fn discover_files_auto_finds_files_in_small_directory() {
     // Verifies that discover_files_auto (wired in file_mode) works with a small
     // directory. This exercises the serial path of discover_files_auto.
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("a.txt", "hello world\n"),
         ("b.txt", "hello world\n"),
         ("sub/c.txt", "hello world\n"),
@@ -478,7 +464,7 @@ fn config_defaults_backup_creates_bak_file() {
 
 #[test]
 fn config_defaults_max_depth_limits_recursion() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("shallow.txt", "target_text\n"),
         ("a/medium.txt", "target_text\n"),
         ("a/b/deep.txt", "target_text\n"),
@@ -574,7 +560,7 @@ fn cli_no_gitignore_overrides_config_gitignore_true() {
 
 #[test]
 fn cli_max_depth_overrides_config_max_depth() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("shallow.txt", "target_text\n"),
         ("a/b/deep.txt", "target_text\n"),
     ]);

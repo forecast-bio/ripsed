@@ -1,28 +1,11 @@
+mod common;
+
+use common::*;
 use predicates::prelude::*;
-use std::fs;
-use tempfile::TempDir;
-
-/// Escape a path for safe embedding in a JSON string (handles Windows backslashes).
-fn json_path(dir: &TempDir) -> String {
-    dir.path().display().to_string().replace('\\', "\\\\")
-}
-
-/// Helper: create a temp dir with files.
-fn setup_test(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
 
 #[test]
 fn json_stdin_detected_as_agent_mode() {
-    let dir = setup_test(&[("test.txt", "old_value content\n")]);
+    let dir = setup_files(&[("test.txt", "old_value content\n")]);
 
     // Pipe a valid ripsed JSON request via stdin without --json flag.
     // The auto-detect logic should recognize it as JSON because it starts
@@ -88,7 +71,7 @@ fn json_without_operations_key_pipe_mode_with_args() {
 
 #[test]
 fn no_json_flag_forces_pipe_mode() {
-    let dir = setup_test(&[("test.txt", "content\n")]);
+    let dir = setup_files(&[("test.txt", "content\n")]);
 
     // Even though this is valid ripsed JSON, --no-json forces pipe mode.
     let request = format!(
@@ -120,7 +103,7 @@ fn no_json_flag_without_args_fails() {
 
 #[test]
 fn json_flag_explicit_forces_json_mode() {
-    let dir = setup_test(&[("test.txt", "target_text\n")]);
+    let dir = setup_files(&[("test.txt", "target_text\n")]);
 
     let request = format!(
         r#"{{
@@ -147,7 +130,7 @@ fn json_flag_explicit_forces_json_mode() {
 
 #[test]
 fn json_with_leading_whitespace_detected() {
-    let dir = setup_test(&[("test.txt", "hello\n")]);
+    let dir = setup_files(&[("test.txt", "hello\n")]);
 
     // JSON with leading whitespace should still be auto-detected
     let request = format!(

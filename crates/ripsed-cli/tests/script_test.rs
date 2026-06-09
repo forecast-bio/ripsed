@@ -1,36 +1,15 @@
+mod common;
+
+use common::*;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
-
-/// Helper: create a temp directory with multiple files.
-fn setup_multi_file(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    for (name, content) in files {
-        let file_path = dir.path().join(name);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(&file_path, content).unwrap();
-    }
-    dir
-}
-
-/// Helper: create a temp directory with a single text file.
-fn setup_single_file(filename: &str, content: &str) -> TempDir {
-    let dir = TempDir::new().unwrap();
-    let file_path = dir.path().join(filename);
-    if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    fs::write(&file_path, content).unwrap();
-    dir
-}
 
 // ── Integration tests for --script mode ──
 
 #[test]
 fn script_replace_modifies_files() {
-    let dir = setup_multi_file(&[
+    let dir = setup_files(&[
         ("a.txt", "hello world\nhello again\n"),
         ("b.txt", "hello from b\n"),
     ]);
@@ -163,7 +142,7 @@ fn script_count_mode_prints_number() {
 
 #[test]
 fn script_per_op_glob_scopes_operation() {
-    let dir = setup_multi_file(&[("code.rs", "old_name\n"), ("readme.txt", "old_name\n")]);
+    let dir = setup_files(&[("code.rs", "old_name\n"), ("readme.txt", "old_name\n")]);
 
     // Only replace in .rs files
     let script_content = r#"replace "old_name" "new_name" --glob "*.rs""#;
