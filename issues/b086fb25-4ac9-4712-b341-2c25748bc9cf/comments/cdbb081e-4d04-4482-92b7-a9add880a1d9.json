@@ -1,0 +1,10 @@
+{
+  "uuid": "cdbb081e-4d04-4482-92b7-a9add880a1d9",
+  "issue_uuid": "b086fb25-4ac9-4712-b341-2c25748bc9cf",
+  "author": "w3Lb",
+  "content": "Delivered in commit 928c698. (a) tests/common/mod.rs replaces helper definitions duplicated across all 11 CLI integration test files (rename done by dogfooding ripsed itself: 69 changes in 10 files). (b) parse_confirm_response extracted from interactive::confirm_file + 7 unit tests covering all variants, case/whitespace tolerance, and the empty/unrecognized->No default. (c) Fixed tautological test_json_mode_dry_run_does_not_write (now actually runs run_json_mode) and removed its stale process::exit comment. (d) Strengthened both human-mode dry-run tests (the or() predicate was nearly vacuous). (e) New hardening_test.rs: 6 adversarial tests — invalid UTF-8 stdin (pipe + autodetect), --json with empty stdin, undo-log 0600 perms, unwritable directory leaves file untouched, binary files never rewritten. Also added *.ripsed.lock to .gitignore — ripsed's persistent lock sentinels were polluting git status. Verification: cargo test --workspace 23 suites all green, clippy -D warnings clean, fmt clean. Note: tautological serde-roundtrip removal was already done in 0.2.8 per CHANGELOG; this completes the remainder.",
+  "created_at": "2026-06-09T19:52:24.598370377Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA5BmaQukngoJGUle+JCVbbCtAeo1JrdJYZiFoVidq4dzaADzSpxMkn2P3bRbsopZZVHndb3JfWE7UBTsp6lu2Aw=="
+}
