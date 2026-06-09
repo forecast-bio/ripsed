@@ -2,11 +2,12 @@
   "uuid": "87a9560b-be76-4c53-946e-ae369fa94308",
   "display_id": 102,
   "title": "Publish to crates.io and package managers: brew, scoop, AUR, deb",
-  "status": "open",
+  "status": "closed",
   "priority": "low",
   "created_by": "w3Lb",
   "created_at": "2026-06-09T20:23:17.969469432Z",
-  "updated_at": "2026-06-09T20:25:10.022300129Z",
+  "updated_at": "2026-06-09T22:05:14.642058919Z",
+  "closed_at": "2026-06-09T22:05:14.642058919Z",
   "labels": [
     "infra"
   ],
