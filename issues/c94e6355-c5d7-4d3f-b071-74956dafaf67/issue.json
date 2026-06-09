@@ -6,8 +6,11 @@
   "priority": "medium",
   "created_by": "w3Lb",
   "created_at": "2026-06-09T20:21:58.136851849Z",
-  "updated_at": "2026-06-09T20:22:00.985018376Z",
+  "updated_at": "2026-06-09T20:25:04.691671520Z",
   "labels": [
     "performance"
+  ],
+  "related": [
+    "9d0e1c5a-7810-4c62-8ce6-b54d41beadcb"
   ]
 }
