@@ -5,18 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-06-10
 
-### Added
-- Streaming large-file edits (#111): files of at least
-  `defaults.stream_min_bytes` (default 256 MiB, `0` disables) stream
-  line-by-line straight to the atomic temp file in constant memory
-  when no undo entry will be recorded — measured ~6 MB peak RSS
-  editing a file that buffers at ~450 MB, making files larger than
-  RAM editable. Streamed files keep each line's own terminator (no
-  majority-vote normalization), collect the first 50 changes for
-  display with an exact total count, and emit the undo-skip notice.
-  BOM-carrying files and multiline ops stay buffered.
+### Changed (BREAKING)
+- **Exit codes now follow the ripgrep convention** (#100): `0` = made
+  or previewed changes, `1` = ran cleanly but nothing matched, `2` =
+  error (bad regex, IO failure, invalid request, lock timeout).
+  Previously every failure — including real errors — exited `1`.
+  Scripts checking `!= 0` keep working; scripts that treated `1` as
+  "error" must now check for `2`. Errors take precedence over partial
+  success: a run with per-file errors exits `2` even if other files
+  changed. Pipe mode now exits `1` on clean passthrough with no
+  matches (was `0`); JSON mode exits `1` on a successful response with
+  zero matched files (the response body is unchanged).
 
 ### Changed
 - Whole-buffer splice fast path (#109): literal replaces (including
@@ -37,33 +38,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now skip per-change context construction entirely, UTF-8 writes no
   longer copy the output buffer, and CRLF detection is a single pass.
   Net: the 64 MiB benchmark drops from 4.6 s to ~2.2 s.
+- Semver-compatible dependency refresh via `cargo update` (regex,
+  serde_json, libc, ignore, zerocopy, shlex 1→2 transitive, and
+  others), including the fuzz workspace lockfile. No advisories
+  (`cargo audit` clean). (#86)
+- Harden test suite: remove tautologies, add adversarial tests (#84)
+- Replace process::exit calls in run() with Result propagation; the
+  only `process::exit` is now in `main()` after `run()` returns, so
+  RAII destructors (file locks, temp files) always execute (#22)
 
 ### Added
+- Streaming large-file edits (#111): files of at least
+  `defaults.stream_min_bytes` (default 256 MiB, `0` disables) stream
+  line-by-line straight to the atomic temp file in constant memory
+  when no undo entry will be recorded — measured ~6 MB peak RSS
+  editing a file that buffers at ~450 MB, making files larger than
+  RAM editable. Streamed files keep each line's own terminator (no
+  majority-vote normalization), collect the first 50 changes for
+  display with an exact total count, and emit the undo-skip notice.
+  BOM-carrying files and multiline ops stay buffered.
 - Undo-log size cap and opt-out (#106): files larger than
   `undo.max_file_bytes` (`.ripsed.toml`, default 4 MiB, `0` =
   unlimited) are edited but get no undo entry, with a one-line stderr
   note — the log stores a full copy of each original, which made
   huge-file edits pay a second full serialization. `--no-undo`
-  (JSON: `"record_undo": false`) skips recording entirely. Measured
-  on the 64 MiB benchmark corpus, the default cap trims roughly a
-  second off the mean; the remaining gap to sed is the line-oriented
-  engine, not undo.
-
-## [0.3.0] - 2026-06-09
-
-### Changed (BREAKING)
-- **Exit codes now follow the ripgrep convention** (#100): `0` = made
-  or previewed changes, `1` = ran cleanly but nothing matched, `2` =
-  error (bad regex, IO failure, invalid request, lock timeout).
-  Previously every failure — including real errors — exited `1`.
-  Scripts checking `!= 0` keep working; scripts that treated `1` as
-  "error" must now check for `2`. Errors take precedence over partial
-  success: a run with per-file errors exits `2` even if other files
-  changed. Pipe mode now exits `1` on clean passthrough with no
-  matches (was `0`); JSON mode exits `1` on a successful response with
-  zero matched files (the response body is unchanged).
-
-### Added
+  (JSON: `"record_undo": false`) skips recording entirely.
 - Community scaffolding (#105): CONTRIBUTING.md (dev setup, workspace
   map, PR checklist, the fuzz-workspace footgun), GitHub issue
   templates for bugs and feature requests, and a PR template.
@@ -184,16 +183,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the written output was already correct, but the structured diff shown
   in JSON mode didn't match the actual file bytes. The metadata now
   uses the file's detected line separator. (#89)
-
-### Changed
-- Semver-compatible dependency refresh via `cargo update` (regex,
-  serde_json, libc, ignore, zerocopy, shlex 1→2 transitive, and
-  others), including the fuzz workspace lockfile. No advisories
-  (`cargo audit` clean). (#86)
-- Harden test suite: remove tautologies, add adversarial tests (#84)
-- Replace process::exit calls in run() with Result propagation; the
-  only `process::exit` is now in `main()` after `run()` returns, so
-  RAII destructors (file locks, temp files) always execute (#22)
 
 ## [0.2.9] - 2026-04-17
 
