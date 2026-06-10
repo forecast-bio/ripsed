@@ -1,0 +1,10 @@
+{
+  "uuid": "b637086a-1c67-468d-91fc-3b0121ad558a",
+  "display_id": 109,
+  "title": "Add whole-buffer splice fast path for eligible replace operations",
+  "status": "open",
+  "priority": "high",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-10T01:11:35.559815547Z",
+  "updated_at": "2026-06-10T01:11:35.559815547Z"
+}
