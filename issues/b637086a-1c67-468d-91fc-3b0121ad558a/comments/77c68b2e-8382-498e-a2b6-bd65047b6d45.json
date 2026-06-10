@@ -1,0 +1,10 @@
+{
+  "uuid": "77c68b2e-8382-498e-a2b6-bd65047b6d45",
+  "issue_uuid": "b637086a-1c67-468d-91fc-3b0121ad558a",
+  "author": "w3Lb",
+  "content": "Plan: whole-buffer splice path in engine::apply for eligible Replaces — O(input+matches) instead of per-line String allocation for every line. ELIGIBILITY (must be provably byte-identical to the line path): op=Replace, literal only (incl. case-insensitive literal — escaped pattern can't gain \\n; REGEX EXCLUDED in v1 because \\s/[^x]/\\W/(?s) can match across line boundaries and textual analysis is unsound), find contains no \\n/\\r, no range, count != first_per_line (FirstInFile/Max via span truncation), and UNIFORM line endings (mixed-endings files take the line path because it normalizes via majority vote and splice wouldn't). Change metadata stays LINE-SHAPED for consumer compatibility: spans grouped by containing line via memchr scans (O(matches)), before/after reconstructed per affected line, line numbers counted incrementally. Also: context attached to at most the first 1000 changes per file in BOTH paths (documented; a 1M-change JSON response carrying 6M context lines helps nobody). KEY TEST: equivalence property — a range of 1..EOF forces the line path with identical semantics, so prop-compare splice vs apply-with-full-range on text+changes. Adds memchr dep to ripsed-core.",
+  "created_at": "2026-06-10T01:22:19.259402239Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABACOrBkR7A1ZiRpvjXeC4roSOmi6ABkiGWcV8ifB3lY9qoN/YgcwdLWnAt0m3k/x+bBZ+Pe33jVT7okIcZpYJvDw=="
+}
