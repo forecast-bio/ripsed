@@ -1,0 +1,10 @@
+{
+  "uuid": "906fe9d5-43e0-4bbc-b380-720be0406665",
+  "issue_uuid": "ad4901e4-68ee-4f8a-8c53-f831067d2077",
+  "author": "w3Lb",
+  "content": "Delivered in commit 38951f1. (1) Windows: discovery now filters *.ripsed.lock sentinels in both walkers + regression test — root cause was #97 parallel workers overlapping a mandatory LockFileEx region with another worker's read of the sentinel-as-target; #100's exit-2-on-error unmasked it (the read failure predates this batch but was silent). (2) fuzz_engine OOM: empty find = zero-width match ON the newline byte = line-grouping walk consumes nothing = infinite Change accumulation. Empty patterns now splice-ineligible (semantically divergent anyway) + defensive no-progress guard + proptest widened {1,8}->{0,8} + reproducer as unit test + crash artifact promoted to committed seed corpus. Verified: 25 suites, 900k clean fuzz execs, original artifact passes, clippy/fmt clean. Worth savoring: the fuzz-in-CI job (#103) caught a real memory-safety-adjacent bug on its FIRST run, in code (#109) written after the job was.",
+  "created_at": "2026-06-10T02:24:33.562750178Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAxoKF7ZhCqIxqSYh4RVVPU51BJEZrhsr4N4T1nsJm4YH/7fAbFSIznKeYG0+O9ggyQaJ5JOMgxLyrlYDogvi5Cg=="
+}
