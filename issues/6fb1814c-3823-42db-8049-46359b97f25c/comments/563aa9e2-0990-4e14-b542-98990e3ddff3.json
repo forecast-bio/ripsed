@@ -1,0 +1,10 @@
+{
+  "uuid": "563aa9e2-0990-4e14-b542-98990e3ddff3",
+  "issue_uuid": "6fb1814c-3823-42db-8049-46359b97f25c",
+  "author": "w3Lb",
+  "content": "Delivered in commit 94a7f22: workspace version 0.2.9 -> 0.3.0 (5 strings in root Cargo.toml incl. the four internal dep versions — bumped with ripsed itself), CHANGELOG Unreleased retitled [0.3.0] - 2026-06-09, Cargo.lock refreshed (7 workspace members at 0.3.0 incl. fuzz). Verified: 25 test suites green, clippy -D warnings clean, fmt clean. Also removed stray gitignored *.ripsed.lock sentinels from dogfooding runs. Remaining HUMAN steps to ship: git push, tag v0.3.0 (triggers the release workflow incl. deb + completions), cargo publish in order core->fs->json->ripsed->cli.",
+  "created_at": "2026-06-10T00:54:54.380897541Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAUiqf5lgmVzSOOqlVG1hBEXXq5J5cGRPQRzXa4gM6rT/lqrfgI0IjGjiQ4cNYNEyMkQ7dc+yzr1T2SFs+jTE2Aw=="
+}
