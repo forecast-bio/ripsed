@@ -1,0 +1,10 @@
+{
+  "uuid": "1f31f0a5-9957-49d2-8a09-e4b4be47441e",
+  "issue_uuid": "25374111-b725-4bca-9179-0f227dccae11",
+  "author": "w3Lb",
+  "content": "Plan: audit + refresh the four READMEs (the crates.io landing pages) for 0.3.0. Found stale: main README CLI ref missing --threads and -p/--pipe, JSON docs missing atomic/record_undo, architecture said 'four crates' and omitted the facade; ripsed-fs claimed PID-based lock staleness (dead since 0.2.8's flock rewrite); ripsed-json advertised a 64MiB size limit that does not exist in the code; ripsed-core bullets predate multiline/counts/ranges/splice/prescreen/LineProcessor. Rewrite accordingly; docs-only commit.",
+  "created_at": "2026-06-10T02:02:25.893730734Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAAJyVK9kk4F207kWkc6SIcI3pnrOsUHx/Xo+8mfZjTROQ0iYt6Tzui1x1edfr9t3AwXi3PLYsXcTyymXKe26MAA=="
+}
