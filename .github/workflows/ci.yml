@@ -118,26 +118,35 @@ jobs:
           MIRIFLAGS: "-Zmiri-disable-isolation"
 
   semver:
-    name: semver-checks
+    name: semver-checks (${{ matrix.crate }})
     runs-on: ubuntu-latest
-    continue-on-error: true
-    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: [ripsed-core, ripsed-fs, ripsed-json, ripsed]
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          key: semver
 
       - name: Install cargo-semver-checks
         run: cargo install cargo-semver-checks --locked
 
+      # Baseline is the highest version published on crates.io (the
+      # tool's default), so this answers the pre-publish question that
+      # matters in a direct-push workflow: does the tree break the
+      # published API beyond what the declared version bump allows?
+      # (The old form diffed against origin/main, which on a push TO
+      # main compares the tree with itself — it was PR-gated and
+      # therefore permanently skipped here.)
       - name: Run semver checks
-        run: cargo semver-checks check-release -p ripsed-core --baseline-rev origin/main
+        run: cargo semver-checks check-release -p ${{ matrix.crate }}
 
   fuzz:
     name: Fuzz smoke (${{ matrix.target }})
