@@ -14,7 +14,7 @@ use crate::args::Cli;
 use crate::human;
 use crate::interactive::{self, ConfirmAction};
 use crate::shared::{
-    build_op_options, discovery_opts_from, load_undo_log, record_undo, save_undo_log,
+    build_op_options, discovery_opts_from, load_undo_log, record_undo_capped, save_undo_log,
 };
 
 /// Handle `--undo N`: restore the last N files from the undo log.
@@ -98,8 +98,9 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
     let mut total_changes = 0usize;
     let mut files_modified = 0usize;
 
-    // Load undo log for recording changes (only when not dry-run)
-    let mut undo_log = if !cli.dry_run {
+    // Load undo log for recording changes (skipped for dry runs and
+    // --no-undo bulk runs)
+    let mut undo_log = if !cli.dry_run && !cli.no_undo {
         Some(load_undo_log(config))
     } else {
         None
@@ -133,7 +134,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
             if let Some(ref mut log) = undo_log
                 && let Some((ref entry, encoding)) = outcome.undo
             {
-                record_undo(log, &outcome.path, entry, encoding);
+                record_undo_capped(log, &outcome.path, entry, encoding, &config.undo);
             }
         }
 
@@ -229,7 +230,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
                 if let Some(ref mut log) = undo_log
                     && let Some(ref undo_entry) = output.undo
                 {
-                    record_undo(log, file_path, undo_entry, encoding);
+                    record_undo_capped(log, file_path, undo_entry, encoding, &config.undo);
                 }
 
                 match writer::write_atomic_encoded(file_path, text, encoding) {

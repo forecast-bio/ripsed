@@ -81,12 +81,14 @@ scenarios), 64 MiB (big-file).
   its *min* is the best of the four) and does strictly more work per
   file than the others: undo-log recording and atomic temp-file+rename
   writes are always on.
-- **big-file**: ripsed loses clearly (~6×). Two structural costs
-  dominate: the undo log serializes a JSON-escaped copy of the entire
-  64 MiB original, and the line-oriented engine materializes the file
-  as separate line `String`s before rejoining. Both are known and
-  tracked (undo-log size cap / opt-out) — for very large single files,
-  `sed` remains the right tool today.
+- **big-file**: ripsed loses clearly. Since these numbers were taken,
+  undo recording is capped (`undo.max_file_bytes`, default 4 MiB —
+  oversize files are edited but not recorded) and `--no-undo` exists;
+  measured on the same corpus that trims roughly a second off the
+  mean. The remaining gap is structural: the line-oriented engine
+  materializes the file as separate line `String`s before rejoining,
+  while sed streams. For very large single files, `sed` remains the
+  right tool today.
 
 ## Caveats
 

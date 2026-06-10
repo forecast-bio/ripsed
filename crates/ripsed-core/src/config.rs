@@ -60,11 +60,19 @@ pub struct IgnoreConfig {
 pub struct UndoConfig {
     #[serde(default = "default_max_entries")]
     pub max_entries: usize,
+    /// Files larger than this (decoded bytes) get no undo entry — the undo
+    /// log stores a full copy of the original text, which dominates the
+    /// cost of editing very large files. `0` disables the cap.
+    #[serde(default = "default_max_file_bytes")]
+    pub max_file_bytes: u64,
 }
 
 impl Default for UndoConfig {
     fn default() -> Self {
-        Self { max_entries: 100 }
+        Self {
+            max_entries: 100,
+            max_file_bytes: default_max_file_bytes(),
+        }
     }
 }
 
@@ -76,6 +84,12 @@ fn default_context_lines() -> usize {
 
 fn default_max_entries() -> usize {
     100
+}
+
+fn default_max_file_bytes() -> u64 {
+    // Generous for source files (rarely above a few hundred KB) while
+    // keeping huge-file edits from paying a full-copy serialization.
+    4 * 1024 * 1024
 }
 
 impl Config {
@@ -127,6 +141,18 @@ mod tests {
         assert_eq!(config.agent.context_lines, 3);
         assert!(config.ignore.patterns.is_empty());
         assert_eq!(config.undo.max_entries, 100);
+        assert_eq!(config.undo.max_file_bytes, 4 * 1024 * 1024);
+    }
+
+    #[test]
+    fn parse_undo_max_file_bytes() {
+        let config: Config = toml::from_str("[undo]\nmax_file_bytes = 16\n").unwrap();
+        assert_eq!(config.undo.max_file_bytes, 16);
+        // Omitted -> default cap; 0 -> unlimited.
+        let config: Config = toml::from_str("[undo]\nmax_entries = 5\n").unwrap();
+        assert_eq!(config.undo.max_file_bytes, 4 * 1024 * 1024);
+        let config: Config = toml::from_str("[undo]\nmax_file_bytes = 0\n").unwrap();
+        assert_eq!(config.undo.max_file_bytes, 0);
     }
 
     // ── TOML parsing ──

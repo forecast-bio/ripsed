@@ -130,7 +130,10 @@ terminates ripsed quietly, like any well-behaved filter.
 ## Undo, backups, and safety
 
 - Every non-dry-run modification is recorded in `.ripsed/undo.jsonl`
-  (0600 permissions, capped via `.ripsed.toml`'s `[undo] max_entries`).
+  (0600 permissions; entry count capped by `[undo] max_entries`, and
+  files over `[undo] max_file_bytes` — default 4 MiB — are edited but
+  not recorded, with a stderr note). `--no-undo` skips recording for
+  bulk runs where the log would just be ballast.
 - `--backup` additionally writes `.ripsed.bak` files before modifying.
 - Writes are atomic (temp file + rename) and per-file locked, so
   concurrent ripsed runs can't corrupt files.

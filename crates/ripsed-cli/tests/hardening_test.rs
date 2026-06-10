@@ -835,6 +835,151 @@ fn json_mode_exit_two_on_invalid_request() {
     assert_eq!(output.status.code(), Some(2));
 }
 
+// ── Undo-log size cap and --no-undo ──
+
+#[test]
+fn undo_cap_skips_large_file_but_still_edits_it() {
+    let dir = setup_files(&[
+        (".ripsed.toml", "[undo]\nmax_file_bytes = 16\n"),
+        ("small.txt", "needle\n"),
+        (
+            "big.txt",
+            "needle plus enough padding to exceed sixteen bytes\n",
+        ),
+    ]);
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["needle", "thread", "--glob", "*.txt"])
+        .current_dir(dir.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("undo skipped for"))
+        .stderr(predicate::str::contains("big.txt"));
+
+    // Both files were edited — the cap only affects undo recording.
+    assert_eq!(
+        fs::read_to_string(dir.path().join("small.txt")).unwrap(),
+        "thread\n"
+    );
+    assert!(
+        fs::read_to_string(dir.path().join("big.txt"))
+            .unwrap()
+            .starts_with("thread")
+    );
+
+    // Undo restores only the small file; big.txt has no entry.
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--undo", "5"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(dir.path().join("small.txt")).unwrap(),
+        "needle\n"
+    );
+    assert!(
+        fs::read_to_string(dir.path().join("big.txt"))
+            .unwrap()
+            .starts_with("thread"),
+        "capped file must stay modified after undo"
+    );
+}
+
+#[test]
+fn undo_cap_zero_means_unlimited() {
+    let dir = setup_files(&[
+        (".ripsed.toml", "[undo]\nmax_file_bytes = 0\n"),
+        (
+            "big.txt",
+            "needle plus enough padding to exceed sixteen bytes\n",
+        ),
+    ]);
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["needle", "thread", "--glob", "*.txt"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--undo"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+    assert!(
+        fs::read_to_string(dir.path().join("big.txt"))
+            .unwrap()
+            .starts_with("needle"),
+        "cap 0 = unlimited, undo must restore"
+    );
+}
+
+#[test]
+fn no_undo_flag_records_nothing() {
+    let dir = setup_single_file("t.txt", "needle\n");
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--no-undo", "needle", "thread"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(dir.path().join("t.txt")).unwrap(),
+        "thread\n"
+    );
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--undo"])
+        .current_dir(dir.path())
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains("nothing to undo"));
+}
+
+#[test]
+fn no_undo_conflicts_with_undo() {
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--no-undo", "--undo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+}
+
+#[test]
+fn json_record_undo_false_records_nothing() {
+    let dir = setup_files(&[("t.txt", "needle\n")]);
+    let request = json_request(
+        r#"{"op": "replace", "find": "needle", "replace": "thread"}"#,
+        &format!(
+            r#""dry_run": false, "record_undo": false, "root": "{}""#,
+            json_path(&dir)
+        ),
+    );
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(request)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        fs::read_to_string(dir.path().join("t.txt")).unwrap(),
+        "thread\n"
+    );
+
+    // A JSON undo request reverts zero operations.
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--json"])
+        .write_stdin(r#"{"undo": {"last": 1}}"#)
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    let resp: serde_json::Value =
+        serde_json::from_str(&String::from_utf8(output.stdout).unwrap()).unwrap();
+    assert_eq!(resp["undo"]["operations_reverted"], 0);
+}
+
 #[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);

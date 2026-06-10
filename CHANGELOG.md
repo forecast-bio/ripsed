@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Undo-log size cap and opt-out (#106): files larger than
+  `undo.max_file_bytes` (`.ripsed.toml`, default 4 MiB, `0` =
+  unlimited) are edited but get no undo entry, with a one-line stderr
+  note — the log stores a full copy of each original, which made
+  huge-file edits pay a second full serialization. `--no-undo`
+  (JSON: `"record_undo": false`) skips recording entirely. Measured
+  on the 64 MiB benchmark corpus, the default cap trims roughly a
+  second off the mean; the remaining gap to sed is the line-oriented
+  engine, not undo.
+
 ## [0.3.0] - 2026-06-09
 
 ### Changed (BREAKING)

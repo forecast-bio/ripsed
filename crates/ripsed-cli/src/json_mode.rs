@@ -15,7 +15,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use crate::shared::{load_undo_log, record_undo, save_undo_log};
+use crate::shared::{load_undo_log, record_undo_capped, save_undo_log};
 
 pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i32> {
     let request = match JsonRequest::parse(input) {
@@ -63,8 +63,9 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
     // For atomic batch mode, collect all writes to apply at once
     let mut pending_writes: Vec<(std::path::PathBuf, String, SourceEncoding)> = Vec::new();
 
-    // Load undo log for recording changes (only when not dry-run)
-    let mut undo_log = if !dry_run {
+    // Load undo log for recording changes (skipped for dry runs and
+    // requests with "record_undo": false)
+    let mut undo_log = if !dry_run && options.record_undo {
         Some(load_undo_log(config))
     } else {
         None
@@ -176,7 +177,7 @@ pub fn run_json_mode(input: &str, config: &Config, jsonl: bool) -> Result<(), i3
                     if let Some(ref mut log) = undo_log
                         && let Some(ref undo_entry) = output.undo
                     {
-                        record_undo(log, file_path, undo_entry, encoding);
+                        record_undo_capped(log, file_path, undo_entry, encoding, &config.undo);
                     }
 
                     if backup && let Err(e) = writer::create_backup(file_path) {

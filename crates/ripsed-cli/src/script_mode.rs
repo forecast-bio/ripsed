@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use crate::args::Cli;
 use crate::file_mode::{FileOutcome, process_one_file};
 use crate::human;
-use crate::shared::{build_op_options, load_undo_log, record_undo, save_undo_log};
+use crate::shared::{build_op_options, load_undo_log, record_undo_capped, save_undo_log};
 
 /// One operation's pass over its files, fanned out across workers.
 /// Outcomes come back in discovery order.
@@ -74,8 +74,9 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
     let mut had_errors = false;
     let mut files_modified_set: HashSet<PathBuf> = HashSet::new();
 
-    // Load undo log for recording changes (only when not dry-run)
-    let mut undo_log = if !cli.dry_run {
+    // Load undo log for recording changes (skipped for dry runs and
+    // --no-undo bulk runs)
+    let mut undo_log = if !cli.dry_run && !cli.no_undo {
         Some(load_undo_log(config))
     } else {
         None
@@ -132,7 +133,7 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
             if let Some(ref mut log) = undo_log
                 && let Some((ref entry, encoding)) = outcome.undo
             {
-                record_undo(log, &outcome.path, entry, encoding);
+                record_undo_capped(log, &outcome.path, entry, encoding, &config.undo);
             }
             if outcome.modified {
                 files_modified_set.insert(outcome.path.clone());

@@ -427,6 +427,11 @@ fn gen_schema() {
                         },
                         "additionalProperties": false
                     },
+                    "record_undo": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Record undo entries for modified files. Files larger than the undo.max_file_bytes config cap are skipped even when true."
+                    },
                     "max_depth": {
                         "type": "integer",
                         "minimum": 1,

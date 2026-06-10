@@ -182,6 +182,10 @@ pub struct OpOptions {
     /// Pattern-addressed regions (mutually exclusive with `line_range`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<PatternRange>,
+    /// Record undo entries for modified files (CLI: disable with
+    /// `--no-undo`). Per-file size caps still apply when enabled.
+    #[serde(default = "default_true")]
+    pub record_undo: bool,
 }
 
 impl OpOptions {
@@ -199,6 +203,7 @@ impl OpOptions {
 impl Default for OpOptions {
     fn default() -> Self {
         Self {
+            record_undo: true,
             dry_run: true,
             root: None,
             gitignore: true,

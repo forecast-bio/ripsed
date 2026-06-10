@@ -127,6 +127,7 @@ OPTIONS:
         --confirm            Interactive confirmation before each file
         --undo [N]           Undo the last N operations (default: 1)
         --undo-list          Show recent undo log entries
+        --no-undo            Don't record undo entries for this run
         --follow             Follow symbolic links during discovery
         --config <PATH>      Path to .ripsed.toml config file
         --transform <MODE>   Transform matched text (upper, lower, title, snake_case, camel_case)
@@ -320,6 +321,9 @@ max_depth = 10
 
 [undo]
 max_entries = 100
+# Files larger than this get no undo entry (the log stores a full copy
+# of the original text). 0 = unlimited. Default: 4 MiB.
+max_file_bytes = 4194304
 ```
 
 ripsed discovers this file by walking up from the current directory, similar to `.gitignore`.

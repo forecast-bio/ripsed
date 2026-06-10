@@ -156,6 +156,10 @@ pub struct Cli {
     #[arg(long, num_args = 0..=1, default_missing_value = "1")]
     pub undo: Option<usize>,
 
+    /// Don't record undo entries for this run
+    #[arg(long, conflicts_with = "undo")]
+    pub no_undo: bool,
+
     /// Show recent undo log
     #[arg(long)]
     pub undo_list: bool,

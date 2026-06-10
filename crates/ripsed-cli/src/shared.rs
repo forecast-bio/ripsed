@@ -102,6 +102,32 @@ pub fn record_undo(
     });
 }
 
+/// Record an undo entry, honoring the per-file size cap.
+///
+/// Returns `false` (with a one-line stderr note) when the decoded text
+/// exceeds `undo.max_file_bytes` — the undo log stores a full copy of the
+/// original, which dominates the cost of editing very large files. The
+/// edit itself still proceeds. A cap of `0` means unlimited.
+pub fn record_undo_capped(
+    log: &mut UndoLog,
+    file_path: &Path,
+    entry: &UndoEntry,
+    encoding: SourceEncoding,
+    undo_config: &ripsed_core::config::UndoConfig,
+) -> bool {
+    let size = entry.original_text.len() as u64;
+    if undo_config.max_file_bytes > 0 && size > undo_config.max_file_bytes {
+        eprintln!(
+            "ripsed: undo skipped for {}: {size} bytes exceeds undo.max_file_bytes ({}); use --backup or raise the limit in .ripsed.toml",
+            file_path.display(),
+            undo_config.max_file_bytes
+        );
+        return false;
+    }
+    record_undo(log, file_path, entry, encoding);
+    true
+}
+
 /// The source encoding to restore an undo record with (tag parse, with
 /// plain UTF-8 for absent or unknown tags).
 pub fn undo_record_encoding(record: &UndoRecord) -> SourceEncoding {
@@ -131,6 +157,7 @@ pub fn build_op_options(cli: &Cli, config: &Config, glob: Option<String>) -> OpO
         max_depth: cli.max_depth.or(config.defaults.max_depth),
         line_range: cli.line_range,
         range: cli.range.clone(),
+        record_undo: !cli.no_undo,
     }
 }
 

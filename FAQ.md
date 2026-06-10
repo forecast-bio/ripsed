@@ -46,9 +46,11 @@ guessing wrong corrupts files.
 `.ripsed/undo.jsonl` in the directory you ran from — written 0600
 because it contains pre-edit file contents, entry count capped via
 `.ripsed.toml`. Undo restores original bytes exactly, including
-encoding and BOM. Note: undo stores the *full* original text per
-modified file, which is why editing very large files is comparatively
-slow today (see BENCHMARKS.md).
+encoding and BOM. Because each entry stores the *full* original text,
+files larger than `undo.max_file_bytes` (default 4 MiB, `0` =
+unlimited) are edited but not recorded — you get a one-line stderr
+note when that happens. `--no-undo` (JSON: `"record_undo": false`)
+skips recording entirely for bulk runs.
 
 ## Is ripsed fast?
 
