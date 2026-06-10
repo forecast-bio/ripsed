@@ -613,6 +613,11 @@ fn stream_one_file(
         return;
     }
     drop(sink);
+    // Close the input handle before persisting: replacing a file that
+    // still has an open handle fails on Windows with Access Denied
+    // (MoveFileEx over an open destination) — Unix rename doesn't care,
+    // which is exactly why only the Windows runner caught this.
+    drop(reader);
 
     if outcome.total_line_changes == 0 {
         return; // nothing matched; temp (if any) is dropped

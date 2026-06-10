@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.1] - 2026-06-10
 
 ### Fixed
+- Streaming large-file edits no longer fail on Windows (#116): the
+  input file's read handle was still open when the temp file was
+  persisted over it, and replacing a file with an open handle is
+  denied there (Unix rename doesn't care, so only Windows CI saw
+  "Access is denied" persist failures).
 - ripsed's own `*.ripsed.lock` advisory-lock sentinels are no longer
   discovered as edit targets (#114). On Windows this made parallel
   runs fail outright: a worker holding the `LockFileEx` region on a
