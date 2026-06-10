@@ -1,0 +1,10 @@
+{
+  "uuid": "95071bea-749a-48e6-b9e5-e6f2fb9e9a5c",
+  "display_id": 115,
+  "title": "Bump version to 0.3.1: sentinel discovery and splice OOM fixes",
+  "status": "open",
+  "priority": "high",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-10T02:31:30.344951404Z",
+  "updated_at": "2026-06-10T02:31:30.344951404Z"
+}
