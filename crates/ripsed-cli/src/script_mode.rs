@@ -30,7 +30,15 @@ fn process_script_pass(
                 // Back up only before a file's first modification in the
                 // script, so the .bak reflects the pre-script content.
                 let skip_backup = already_backed_up.contains(path);
-                process_one_file(path, op, matcher, options, cli.dry_run, skip_backup)
+                process_one_file(
+                    path,
+                    op,
+                    matcher,
+                    options,
+                    cli.dry_run,
+                    skip_backup,
+                    crate::file_mode::display_context_lines(cli),
+                )
             })
             .collect::<Vec<_>>()
     };

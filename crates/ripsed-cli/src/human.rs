@@ -8,11 +8,16 @@ const GREEN: anstyle::Style =
     anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green)));
 const RESET: anstyle::Reset = anstyle::Reset;
 
-/// Print a colored diff for a file's changes.
+/// Most diff hunks printed per file. Past this nobody is reading the
+/// scrollback, and rendering a million hunks costs more than the edit
+/// itself (measured: ~2.8 s of a 4.6 s 64 MiB run was printing).
+const MAX_PRINTED_CHANGES: usize = 50;
+
+/// Print a colored diff for a file's changes (capped per file).
 pub fn print_file_diff(path: &Path, changes: &[Change]) {
     anstream::println!("{BOLD}{}{RESET}", path.display());
 
-    for change in changes {
+    for change in changes.iter().take(MAX_PRINTED_CHANGES) {
         // Print context before
         if let Some(ref ctx) = change.context {
             for line in &ctx.before {
@@ -37,6 +42,13 @@ pub fn print_file_diff(path: &Path, changes: &[Change]) {
         }
 
         anstream::println!();
+    }
+
+    if changes.len() > MAX_PRINTED_CHANGES {
+        anstream::println!(
+            "  … and {} more change(s) in this file\n",
+            changes.len() - MAX_PRINTED_CHANGES
+        );
     }
 }
 

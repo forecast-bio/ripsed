@@ -432,7 +432,7 @@ fn utf16le_file_roundtrips_encoding_and_bom() {
     let bytes = fs::read(&path).unwrap();
     assert_eq!(
         bytes,
-        encode("goodbye world\nsecond line\n", SourceEncoding::Utf16Le),
+        encode("goodbye world\nsecond line\n", SourceEncoding::Utf16Le).into_owned(),
         "file must stay UTF-16LE with BOM, content replaced"
     );
 }
@@ -454,7 +454,7 @@ fn utf16be_file_roundtrips_encoding_and_bom() {
     let bytes = fs::read(&path).unwrap();
     assert_eq!(
         bytes,
-        encode("ünïcode goodbye 🎉\n", SourceEncoding::Utf16Be)
+        encode("ünïcode goodbye 🎉\n", SourceEncoding::Utf16Be).into_owned()
     );
 }
 
@@ -505,7 +505,7 @@ fn mixed_encoding_tree_all_files_replaced() {
     );
     assert_eq!(
         fs::read(dir.path().join("wide.txt")).unwrap(),
-        encode("goodbye\n", SourceEncoding::Utf16Le)
+        encode("goodbye\n", SourceEncoding::Utf16Le).into_owned()
     );
 }
 
@@ -515,7 +515,7 @@ fn undo_restores_utf16_file_byte_exact() {
 
     let dir = setup_files(&[]);
     let path = dir.path().join("wide.txt");
-    let original = encode("hello world\n", SourceEncoding::Utf16Le);
+    let original = encode("hello world\n", SourceEncoding::Utf16Le).into_owned();
     fs::write(&path, &original).unwrap();
 
     assert_cmd::cargo_bin_cmd!("ripsed")

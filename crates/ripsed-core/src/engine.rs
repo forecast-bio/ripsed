@@ -105,9 +105,22 @@ impl RangeFilter {
 /// default.  This prevents a file with mixed line endings from being
 /// silently normalized to all-CRLF.
 fn uses_crlf(text: &str) -> bool {
-    let crlf_count = text.matches("\r\n").count();
-    let lf_count = text.matches('\n').count() - crlf_count;
-    crlf_count > lf_count
+    // Single pass over the bytes (the previous two full `matches` scans
+    // showed up on large-file profiles): for every `\n`, check whether
+    // the preceding byte is `\r`.
+    let bytes = text.as_bytes();
+    let mut crlf_count = 0usize;
+    let mut bare_lf_count = 0usize;
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'\n' {
+            if i > 0 && bytes[i - 1] == b'\r' {
+                crlf_count += 1;
+            } else {
+                bare_lf_count += 1;
+            }
+        }
+    }
+    crlf_count > bare_lf_count
 }
 
 // ---------------------------------------------------------------------------
@@ -132,8 +145,14 @@ struct LineCtx<'a> {
 }
 
 impl LineCtx<'_> {
-    fn build_context(&self) -> ChangeContext {
-        build_context(self.lines, self.idx, self.context_lines)
+    /// Context lines around the change, or `None` when the caller asked
+    /// for zero — callers that never display context (`--quiet`,
+    /// `--count`) shouldn't pay per-change allocations for it.
+    fn maybe_context(&self) -> Option<ChangeContext> {
+        if self.context_lines == 0 {
+            return None;
+        }
+        Some(build_context(self.lines, self.idx, self.context_lines))
     }
 }
 
@@ -163,7 +182,7 @@ fn apply_replace(
                 line: cx.line_num,
                 before: cx.line.to_string(),
                 after: Some(replaced),
-                context: Some(cx.build_context()),
+                context: cx.maybe_context(),
             },
         }
     } else {
@@ -192,7 +211,7 @@ fn apply_delete(cx: &LineCtx) -> LineAction {
                 line: cx.line_num,
                 before: cx.line.to_string(),
                 after: None,
-                context: Some(cx.build_context()),
+                context: cx.maybe_context(),
             },
         }
     } else {
@@ -209,7 +228,7 @@ fn apply_insert_after(cx: &LineCtx, content: &str) -> LineAction {
                 line: cx.line_num,
                 before: cx.line.to_string(),
                 after: Some(format!("{}{}{content}", cx.line, cx.line_sep)),
-                context: Some(cx.build_context()),
+                context: cx.maybe_context(),
             },
         }
     } else {
@@ -226,7 +245,7 @@ fn apply_insert_before(cx: &LineCtx, content: &str) -> LineAction {
                 line: cx.line_num,
                 before: cx.line.to_string(),
                 after: Some(format!("{content}{}{}", cx.line_sep, cx.line)),
-                context: Some(cx.build_context()),
+                context: cx.maybe_context(),
             },
         }
     } else {
@@ -243,7 +262,7 @@ fn apply_replace_line(cx: &LineCtx, content: &str) -> LineAction {
                 line: cx.line_num,
                 before: cx.line.to_string(),
                 after: Some(content.to_string()),
-                context: Some(cx.build_context()),
+                context: cx.maybe_context(),
             },
         }
     } else {
@@ -262,7 +281,7 @@ fn apply_transform_op(cx: &LineCtx, mode: TransformMode) -> LineAction {
                     line: cx.line_num,
                     before: cx.line.to_string(),
                     after: Some(new_line),
-                    context: Some(cx.build_context()),
+                    context: cx.maybe_context(),
                 },
             }
         } else {
@@ -284,7 +303,7 @@ fn apply_surround(cx: &LineCtx, prefix: &str, suffix: &str) -> LineAction {
                     line: cx.line_num,
                     before: cx.line.to_string(),
                     after: Some(new_line),
-                    context: Some(cx.build_context()),
+                    context: cx.maybe_context(),
                 },
             }
         } else {
@@ -311,7 +330,7 @@ fn apply_indent(cx: &LineCtx, amount: usize, use_tabs: bool) -> LineAction {
                     line: cx.line_num,
                     before: cx.line.to_string(),
                     after: Some(new_line),
-                    context: Some(cx.build_context()),
+                    context: cx.maybe_context(),
                 },
             }
         } else {
@@ -333,7 +352,7 @@ fn apply_dedent(cx: &LineCtx, amount: usize, use_tabs: bool) -> LineAction {
                     line: cx.line_num,
                     before: cx.line.to_string(),
                     after: Some(new_line),
-                    context: Some(cx.build_context()),
+                    context: cx.maybe_context(),
                 },
             }
         } else {
@@ -742,12 +761,16 @@ fn apply_multiline(text: &str, op: &Op, matcher: &Matcher, context_lines: usize)
             } else {
                 Some(replacement.clone())
             },
-            context: Some(build_span_context(
-                &lines,
-                start_line_idx,
-                end_line_idx,
-                context_lines,
-            )),
+            context: if context_lines == 0 {
+                None
+            } else {
+                Some(build_span_context(
+                    &lines,
+                    start_line_idx,
+                    end_line_idx,
+                    context_lines,
+                ))
+            },
         });
         out.push_str(&replacement);
         last_end = end;

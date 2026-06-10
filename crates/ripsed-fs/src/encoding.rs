@@ -107,17 +107,24 @@ fn decode_utf16(payload: &[u8], read_u16: fn([u8; 2]) -> u16) -> io::Result<Stri
 
 /// Encode text back to bytes in the given encoding, re-attaching the BOM
 /// that was present on read.
-pub fn encode(text: &str, encoding: SourceEncoding) -> Vec<u8> {
+///
+/// Plain UTF-8 borrows the input — no copy for the overwhelmingly
+/// common case (a full-buffer copy showed up in large-file profiles).
+pub fn encode(text: &str, encoding: SourceEncoding) -> std::borrow::Cow<'_, [u8]> {
     match encoding {
-        SourceEncoding::Utf8 => text.as_bytes().to_vec(),
+        SourceEncoding::Utf8 => std::borrow::Cow::Borrowed(text.as_bytes()),
         SourceEncoding::Utf8Bom => {
             let mut out = Vec::with_capacity(UTF8_BOM.len() + text.len());
             out.extend_from_slice(&UTF8_BOM);
             out.extend_from_slice(text.as_bytes());
-            out
+            std::borrow::Cow::Owned(out)
         }
-        SourceEncoding::Utf16Le => encode_utf16(text, &UTF16_LE_BOM, u16::to_le_bytes),
-        SourceEncoding::Utf16Be => encode_utf16(text, &UTF16_BE_BOM, u16::to_be_bytes),
+        SourceEncoding::Utf16Le => {
+            std::borrow::Cow::Owned(encode_utf16(text, &UTF16_LE_BOM, u16::to_le_bytes))
+        }
+        SourceEncoding::Utf16Be => {
+            std::borrow::Cow::Owned(encode_utf16(text, &UTF16_BE_BOM, u16::to_be_bytes))
+        }
     }
 }
 
@@ -155,7 +162,7 @@ mod tests {
         let original = "héllo wörld\r\nsecond ünïcode line\n";
         let bytes = encode(original, SourceEncoding::Utf16Le);
         assert!(bytes.starts_with(&UTF16_LE_BOM));
-        let (text, enc) = decode(bytes.clone()).unwrap();
+        let (text, enc) = decode(bytes.clone().into_owned()).unwrap();
         assert_eq!(text, original);
         assert_eq!(enc, SourceEncoding::Utf16Le);
         assert_eq!(encode(&text, enc), bytes, "byte-exact roundtrip");
@@ -166,7 +173,7 @@ mod tests {
         let original = "emoji 🎉 and CJK 漢字\n";
         let bytes = encode(original, SourceEncoding::Utf16Be);
         assert!(bytes.starts_with(&UTF16_BE_BOM));
-        let (text, enc) = decode(bytes.clone()).unwrap();
+        let (text, enc) = decode(bytes.clone().into_owned()).unwrap();
         assert_eq!(text, original);
         assert_eq!(enc, SourceEncoding::Utf16Be);
         assert_eq!(encode(&text, enc), bytes);
@@ -177,7 +184,7 @@ mod tests {
         // 🎉 encodes as a surrogate pair in UTF-16.
         let bytes = encode("🎉", SourceEncoding::Utf16Le);
         assert_eq!(bytes.len(), 2 + 4); // BOM + two u16 units
-        let (text, _) = decode(bytes).unwrap();
+        let (text, _) = decode(bytes.into_owned()).unwrap();
         assert_eq!(text, "🎉");
     }
 

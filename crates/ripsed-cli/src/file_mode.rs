@@ -177,7 +177,13 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
             }
         };
 
-        let output = match engine::apply(&content, &op, &matcher, options.range_spec(), 3) {
+        let output = match engine::apply(
+            &content,
+            &op,
+            &matcher,
+            options.range_spec(),
+            display_context_lines(cli),
+        ) {
             Ok(o) => o,
             Err(e) => {
                 eprintln!("ripsed: {}: {e}", file_path.display());
@@ -270,6 +276,13 @@ pub(crate) fn exit_result(had_errors: bool, total_changes: usize) -> Result<(), 
     }
 }
 
+/// Context lines for human diff display — zero when nothing will be
+/// displayed (`--quiet`, `--count`), so the engine skips per-change
+/// context allocation entirely.
+pub(crate) fn display_context_lines(cli: &Cli) -> usize {
+    if cli.quiet || cli.count { 0 } else { 3 }
+}
+
 /// Everything one worker produced for one file, returned to the main
 /// thread so printing, undo recording, and counting stay ordered and
 /// single-threaded.
@@ -290,6 +303,7 @@ pub(crate) fn process_one_file(
     options: &OpOptions,
     dry_run: bool,
     skip_backup: bool,
+    context_lines: usize,
 ) -> FileOutcome {
     let mut outcome = FileOutcome {
         path: file_path.to_path_buf(),
@@ -325,7 +339,7 @@ pub(crate) fn process_one_file(
         }
     };
 
-    let output = match engine::apply(&content, op, matcher, options.range_spec(), 3) {
+    let output = match engine::apply(&content, op, matcher, options.range_spec(), context_lines) {
         Ok(o) => o,
         Err(e) => {
             outcome
@@ -386,7 +400,17 @@ pub(crate) fn process_files_parallel(
     let work = || {
         files
             .par_iter()
-            .map(|path| process_one_file(path, op, matcher, options, cli.dry_run, false))
+            .map(|path| {
+                process_one_file(
+                    path,
+                    op,
+                    matcher,
+                    options,
+                    cli.dry_run,
+                    false,
+                    display_context_lines(cli),
+                )
+            })
             .collect::<Vec<_>>()
     };
 

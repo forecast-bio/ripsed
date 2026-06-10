@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Large-result diff output is capped (#108): human mode prints the
+  first 50 hunks per file plus an "… and N more change(s)" line —
+  rendering a million hunks cost more than the edit itself (measured:
+  ~2.8 s of a 4.6 s 64 MiB run was printing). `--quiet`/`--count`
+  now skip per-change context construction entirely, UTF-8 writes no
+  longer copy the output buffer, and CRLF detection is a single pass.
+  Net: the 64 MiB benchmark drops from 4.6 s to ~2.2 s.
+
 ### Added
 - Undo-log size cap and opt-out (#106): files larger than
   `undo.max_file_bytes` (`.ripsed.toml`, default 4 MiB, `0` =
