@@ -6,5 +6,8 @@
   "priority": "critical",
   "created_by": "w3Lb",
   "created_at": "2026-06-10T03:03:37.897885734Z",
-  "updated_at": "2026-06-10T03:03:37.897885734Z"
+  "updated_at": "2026-06-10T03:03:39.235326808Z",
+  "labels": [
+    "bug"
+  ]
 }
