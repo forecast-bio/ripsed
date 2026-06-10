@@ -1,0 +1,10 @@
+{
+  "uuid": "2ab93998-071a-48ab-85ff-8c874166f005",
+  "issue_uuid": "7512c369-0378-4ee9-9b27-fab0b174b9b6",
+  "author": "w3Lb",
+  "content": "RESOLVED BY MEASUREMENT, not implementation. The premise (CPU-bound replacement in large files) was eliminated by #108+#109 before this issue was reached: on the 64MiB corpus, literal replace is now 0.14s user / 1.5s wall (I/O-bound, already faster than sed), plain regex 0.26s user, capture-heavy regex 0.45s user of 1.55s wall (sigma 0.45s — perfect parallelization of user time would land inside run noise), --transform 0.21s user. Line-boundary chunking would add real engine complexity (chunk/context-cap/budget coordination, rayon dep in the pure-logic crate) for a gain smaller than measurement noise on every probed workload. Trigger to REOPEN: any future per-line workload measured at >1s user time on large files (e.g. heavy backtracking regex via a future fancy-regex feature, or per-line ops gaining expensive logic). Inter-file parallelism (#97) remains the parallelism story and is unaffected.",
+  "created_at": "2026-06-10T01:31:42.865283845Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAx9yO11rcQX6HallwHsfXkJ1DhY/Nht1wk3Cdk9FLA6ug+nQmlnymXlJ9Qwo930Eo+nztJRu7oZxNifsxvcqNCA=="
+}
