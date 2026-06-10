@@ -1,0 +1,10 @@
+{
+  "uuid": "cccf983f-ec61-48fd-9bf5-c0e87e402792",
+  "issue_uuid": "95071bea-749a-48e6-b9e5-e6f2fb9e9a5c",
+  "author": "w3Lb",
+  "content": "Plan: 0.3.0 is published, so the two #114 fix entries I'd folded into [0.3.0]'s Fixed section (sentinel discovery, splice OOM) must move into a new [0.3.1] - 2026-06-10 section — the published 0.3.0 doesn't contain them. Then bump workspace version 0.3.0 -> 0.3.1 (5 strings: workspace.package.version + 4 internal dep pins), refresh Cargo.lock, full test/clippy/fmt, single commit. Patch bump is correct: two bug fixes, no API changes.",
+  "created_at": "2026-06-10T02:42:42.407166498Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAcOtBJQ14hQCVsAwOmunOctWo5R/Ok3pHnf3asF6FYrJk5pQZU1anH3QEquNWPUIkfEg/z6NpGIQ4Fx15+/T6CA=="
+}
