@@ -1,0 +1,10 @@
+{
+  "uuid": "bf41d369-591d-426a-a489-37f98b25eb30",
+  "issue_uuid": "7263381d-169e-42d7-b0f0-d5ea97df4558",
+  "author": "w3Lb",
+  "content": "Delivered in commit 71c8a16. undo.max_file_bytes config (default 4 MiB, 0=unlimited) enforced via shared::record_undo_capped across file/script/json modes — oversize files are edited but not recorded, one-line stderr note (ordered even in parallel runs since recording happens on the main thread from outcomes). --no-undo CLI flag (conflicts --undo) + JSON record_undo:false + schema. MEASURED on the 64MiB corpus: default cap trims ~1s off the 0.3.0 baseline mean; --no-undo adds only ~9% beyond the cap — correcting the original hypothesis: the dominant remaining cost vs sed is the engine's per-line String materialization, NOT undo serialization. BENCHMARKS/FAQ/GUIDE/README updated with the honest numbers. Proposal (c) (file-per-entry undo storage) intentionally not done — the cap removes the pain without a storage-format migration; engine streaming for huge files would be the real follow-up if big-file parity ever matters. 11 new tests. 25 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-10T01:05:23.186827102Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAhUo/pONJWhrjbZhAgqCTFg43SfjCc0jc7H0uh3w0gGcOHv1WKJ3FLD9w52953Fz245X6zr7hOW1ZZU4Dli5GCw=="
+}
