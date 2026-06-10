@@ -1,0 +1,10 @@
+{
+  "uuid": "bfd7d04e-9ec1-4602-89b8-d3a1a8058320",
+  "issue_uuid": "8bac5267-736b-4bfb-80fc-9e312b46cd89",
+  "author": "w3Lb",
+  "content": "Delivered in commit 8473755: 0.3.1 -> 0.3.2 (5 manifest strings via ripsed, main + fuzz lockfiles refreshed), CHANGELOG [Unreleased] -> [0.3.2] - 2026-06-10. Verified: 25 suites green, clippy/fmt clean, and the new semver gate run locally for all four library crates — 'no semver update required' across the board, confirming the patch bump is the right increment. Single fix in this release: #116 Windows streaming persist.",
+  "created_at": "2026-06-10T03:27:38.125790838Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAZWJsXh2OHZR9GjjF88Du/bnH3YVF0XC+u4wyFqN2KzucohE98T7EDWK6fmesiOGCCw2wUbHQWipqpVRdPis5BA=="
+}
