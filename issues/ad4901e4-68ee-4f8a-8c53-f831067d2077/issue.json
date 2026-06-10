@@ -1,0 +1,10 @@
+{
+  "uuid": "ad4901e4-68ee-4f8a-8c53-f831067d2077",
+  "display_id": 114,
+  "title": "Fix failing CI runners on the 0.3.0 push",
+  "status": "open",
+  "priority": "critical",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-10T02:14:41.756967435Z",
+  "updated_at": "2026-06-10T02:14:41.756967435Z"
+}
