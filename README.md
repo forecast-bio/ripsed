@@ -135,6 +135,8 @@ OPTIONS:
         --indent <N>         Indent matching lines by N spaces
         --dedent <N>         Remove up to N leading whitespace chars from matching lines
         --script <PATH>      Run operations from a .rip script file
+        --threads <N>        Worker threads for file processing (default: all cores)
+    -p, --pipe               Read from stdin, write to stdout (streaming)
     -j, --json               Enable agent/JSON mode
         --jsonl              Stream results as JSON Lines
         --no-json            Force human mode even if stdin looks like JSON
@@ -277,6 +279,9 @@ Replace also accepts `"count"` to limit how many occurrences are replaced:
 counting occurrences per file). `first_per_line` cannot be combined with
 multiline mode.
 
+Other options: `"atomic": true` makes the whole batch all-or-nothing,
+and `"record_undo": false` (CLI: `--no-undo`) skips undo recording.
+
 ### Error Handling
 
 Every error includes a machine-readable `code`, human-readable `message`, and actionable `hint`:
@@ -336,14 +341,15 @@ ripsed discovers this file by walking up from the current directory, similar to 
 
 ## Architecture
 
-ripsed is organized as a Rust workspace with four crates:
+ripsed is organized as a Rust workspace with five crates:
 
 | Crate | Description |
 |---|---|
-| `ripsed-core` | Pure logic: edit engine, matcher, operation IR, error taxonomy |
-| `ripsed-fs` | File I/O: discovery, reading (with mmap), atomic writes, locking |
-| `ripsed-json` | Agent interface: request/response schemas, auto-detection |
-| `ripsed-cli` | Binary: CLI args, human output formatting, interactive confirm |
+| `ripsed-core` | Pure logic: edit engine (line, splice, multiline, and streaming paths), matcher with prescreen, operation IR, ranges, script parser, error taxonomy |
+| `ripsed-fs` | File I/O: parallel discovery, encoding-aware reading (BOM/UTF-16), atomic writes, kernel file locks |
+| `ripsed-json` | Agent interface: request/response schemas, validation, auto-detection |
+| `ripsed-cli` | The `ripsed` binary: modes, args, parallel/streaming application, human output |
+| `ripsed` | Library facade for embedding (`apply_to_file`, `apply_to_files`) |
 
 ## License
 
