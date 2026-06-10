@@ -1,0 +1,10 @@
+{
+  "uuid": "10fe9345-4f36-4a18-b1e7-8bbfdcc53928",
+  "issue_uuid": "4f6485a9-4aa2-4a16-bc1f-7e4113de6576",
+  "author": "w3Lb",
+  "content": "Delivered in commit 8d72e5e: drop(reader) after the read loop, before backup/persist — the input handle held across tmp.persist() is what Windows refuses (os error 5); Unix rename is indifferent, hence green local/Linux/macOS runs. CHANGELOG entry folded into the still-untagged [0.3.1]. Verified: 25 suites green, clippy/fmt clean, x86_64-pc-windows-msvc cargo check passes. Behavioral confirmation requires the Windows runner — watch the next push. PATTERN NOTE for the knowledge base: this is the second Windows-only bug from handle/lock semantics in two days (mandatory LockFileEx regions in #114, open-handle rename denial here); any future code path that renames over a file must audit every handle it holds first.",
+  "created_at": "2026-06-10T03:05:31.110093190Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAhK/0hhc1TofYsqXnVHQZaip7uWMgHRJp72TtsRsOH79KPzR4nxikAaPlHq9Q5vd1dQrgO4PNoWbgW+eY0DsaAg=="
+}
