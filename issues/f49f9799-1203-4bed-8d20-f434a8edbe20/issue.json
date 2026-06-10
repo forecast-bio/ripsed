@@ -1,0 +1,10 @@
+{
+  "uuid": "f49f9799-1203-4bed-8d20-f434a8edbe20",
+  "display_id": 108,
+  "title": "Speed up large-file edits: skip diff context when unused and cap huge diff printing",
+  "status": "open",
+  "priority": "high",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-10T01:11:16.786519218Z",
+  "updated_at": "2026-06-10T01:11:16.786519218Z"
+}
