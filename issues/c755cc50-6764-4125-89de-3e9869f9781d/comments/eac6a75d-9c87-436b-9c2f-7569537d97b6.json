@@ -1,0 +1,10 @@
+{
+  "uuid": "eac6a75d-9c87-436b-9c2f-7569537d97b6",
+  "issue_uuid": "c755cc50-6764-4125-89de-3e9869f9781d",
+  "author": "w3Lb",
+  "content": "Delivered in commit 9ae34cf. Streaming path live: defaults.stream_min_bytes config (256MiB default, 0=off; tests use tiny values), eligibility = no undo entry + line-scoped op + no BOM; per-line terminator passthrough; persist-only-on-change; backup-before-persist; mid-stream errors leave original untouched. MEASURED: 5.8MB peak RSS vs 454MB buffered on the same 64MiB edit — constant memory, files>RAM editable. FileOutcome gained notes + total_line_changes (display sample capped at 50, counts exact). BUG CAUGHT BY TEST: single-file runs took the sequential loop and never streamed — non-confirm runs now all use the worker path. BENCHMARKS.md republished with the full optimization series: big-file 6x loss -> parity with sed (softened the earlier 'faster than sed' single-run claim — full-run means overlap within WSL2 noise). 4 e2e tests + config test. 25 suites green, clippy/fmt clean.",
+  "created_at": "2026-06-10T01:45:12.520383875Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAJeaa46hpqiogkX8i4/3VL5//0YtmB2t3LuWf4bQJB2XKM6fSb7QiBWJXSS3Lf8nCyPNMLKbDcoi5tcurNe+VAQ=="
+}
