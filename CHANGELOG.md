@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Whole-buffer splice fast path (#109): literal replaces (including
+  case-insensitive) with no range, non-per-line counts, and uniform
+  line endings are applied by splicing match spans into the buffer —
+  O(input + matches) instead of an owned `String` per line. Output and
+  `Change` metadata are byte-identical to the per-line loop (locked by
+  an equivalence proptest against a full-file range, which forces the
+  loop). Diff context is now attached to at most the first 1000
+  changes per file on every path — a million-change diff carrying six
+  million context lines helped no consumer. With #108, the 64 MiB
+  benchmark drops to ~1.5 s — faster than GNU sed on the same corpus.
 - Large-result diff output is capped (#108): human mode prints the
   first 50 hunks per file plus an "… and N more change(s)" line —
   rendering a million hunks cost more than the edit itself (measured:

@@ -104,24 +104,35 @@ impl RangeFilter {
 /// When counts are equal (including zero), prefers LF as the more portable
 /// default.  This prevents a file with mixed line endings from being
 /// silently normalized to all-CRLF.
+#[cfg(test)]
 fn uses_crlf(text: &str) -> bool {
-    // Single pass over the bytes (the previous two full `matches` scans
-    // showed up on large-file profiles): for every `\n`, check whether
-    // the preceding byte is `\r`.
+    let (crlf, bare_lf) = line_ending_counts(text);
+    crlf > bare_lf
+}
+
+/// Count `\r\n` and bare-`\n` terminators in one memchr-driven pass
+/// (the previous two full `matches` scans showed up on large-file
+/// profiles). Returns `(crlf, bare_lf)`.
+fn line_ending_counts(text: &str) -> (usize, usize) {
     let bytes = text.as_bytes();
-    let mut crlf_count = 0usize;
-    let mut bare_lf_count = 0usize;
-    for (i, &b) in bytes.iter().enumerate() {
-        if b == b'\n' {
-            if i > 0 && bytes[i - 1] == b'\r' {
-                crlf_count += 1;
-            } else {
-                bare_lf_count += 1;
-            }
+    let mut crlf = 0usize;
+    let mut bare_lf = 0usize;
+    for pos in memchr::memchr_iter(b'\n', bytes) {
+        if pos > 0 && bytes[pos - 1] == b'\r' {
+            crlf += 1;
+        } else {
+            bare_lf += 1;
         }
     }
-    crlf_count > bare_lf_count
+    (crlf, bare_lf)
 }
+
+/// Context is attached to at most this many changes per file (both the
+/// line path and the splice path). Past this, a diff is no longer
+/// something anyone reads hunk-by-hunk — and at six context lines per
+/// change, a million-change file would otherwise allocate hundreds of
+/// megabytes of strings nobody displays.
+const MAX_CONTEXTED_CHANGES: usize = 1000;
 
 // ---------------------------------------------------------------------------
 // Per-operation helper functions
@@ -411,8 +422,16 @@ pub fn apply(
         });
     }
 
-    let crlf = uses_crlf(text);
+    let (crlf_count, bare_lf_count) = line_ending_counts(text);
+    let crlf = crlf_count > bare_lf_count;
     let line_sep = if crlf { "\r\n" } else { "\n" };
+
+    // Whole-buffer splice fast path: O(input + matches) instead of an
+    // owned String per line, when provably byte-identical to the loop.
+    if splice_eligible(op, &range, crlf_count, bare_lf_count) {
+        return Ok(apply_spliced(text, op, matcher, context_lines));
+    }
+
     let lines: Vec<&str> = text.lines().collect();
     let mut result_lines: Vec<String> = Vec::with_capacity(lines.len());
     let mut changes: Vec<Change> = Vec::new();
@@ -433,7 +452,12 @@ pub fn apply(
             matcher,
             lines: &lines,
             idx,
-            context_lines,
+            // Past the cap, changes carry no context (see the constant).
+            context_lines: if changes.len() >= MAX_CONTEXTED_CHANGES {
+                0
+            } else {
+                context_lines
+            },
             line_sep,
         };
 
@@ -490,6 +514,181 @@ pub fn apply(
         changes,
         undo,
     })
+}
+
+/// Whether this operation + buffer can take the whole-buffer splice fast
+/// path with output and metadata **byte-identical** to the per-line loop.
+///
+/// The soundness argument requires all of:
+/// - `Replace` with a **literal** pattern (case-insensitive literals
+///   included — their escaped shadow can't gain metacharacters). Regexes
+///   are excluded: classes like `\s`, `\W`, or `[^x]` match `\n` against
+///   a whole buffer but never per line, and textual eligibility analysis
+///   of that is unsound.
+/// - The pattern contains no `\n`/`\r`, so no match can touch a line
+///   boundary and the match sets coincide.
+/// - No range filter (those are inherently line-driven).
+/// - Not `FirstPerLine` (per-line budgets need the loop); `FirstInFile`
+///   and `Max` truncate the span list to the same occurrence set.
+/// - **Uniform line endings**: the per-line loop rejoins with the
+///   majority separator, silently normalizing mixed-ending files;
+///   splice preserves bytes, so mixed files must take the loop.
+fn splice_eligible(op: &Op, range: &Option<RangeSpec>, crlf: usize, bare_lf: usize) -> bool {
+    if range.is_some() || (crlf > 0 && bare_lf > 0) {
+        return false;
+    }
+    match op {
+        Op::Replace {
+            find, regex, count, ..
+        } => {
+            !*regex
+                && *count != ReplaceCount::FirstPerLine
+                && !find.contains('\n')
+                && !find.contains('\r')
+        }
+        _ => false,
+    }
+}
+
+/// Whole-buffer splice for eligible Replaces: find all spans once, copy
+/// the unmatched stretches through untouched, and reconstruct the
+/// line-shaped `Change` metadata only for affected lines — O(input +
+/// matches) rather than an owned `String` for every line of the file.
+fn apply_spliced(text: &str, op: &Op, matcher: &Matcher, context_lines: usize) -> EngineOutput {
+    let replace = match op {
+        Op::Replace { replace, .. } => replace.as_str(),
+        // Guarded by splice_eligible.
+        _ => unreachable!("splice path only handles Replace"),
+    };
+
+    let mut spans = matcher.find_replacements(text, replace);
+    if let Some(limit) = replace_budget(op) {
+        spans.truncate(limit);
+    }
+    if spans.is_empty() {
+        return EngineOutput {
+            text: None,
+            changes: Vec::new(),
+            undo: None,
+        };
+    }
+
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut changes: Vec<Change> = Vec::new();
+    let mut last_end = 0usize; // output copy cursor
+    let mut line_num = 1usize; // 1-indexed line of `scan`
+    let mut scan = 0usize; // newline-counting cursor
+
+    let mut i = 0;
+    while i < spans.len() {
+        let group_first = spans[i].start;
+        // Advance the line counter to this span's line.
+        line_num += memchr::memchr_iter(b'\n', &bytes[scan..group_first]).count();
+        scan = group_first;
+
+        // Bounds of the containing line. Content excludes the terminator
+        // (and its `\r`), matching what `lines()` yields in the loop path.
+        let line_begin = memchr::memrchr(b'\n', &bytes[..group_first]).map_or(0, |p| p + 1);
+        let line_end =
+            memchr::memchr(b'\n', &bytes[group_first..]).map_or(text.len(), |p| group_first + p);
+        let content_end = if line_end > line_begin && bytes[line_end - 1] == b'\r' {
+            line_end - 1
+        } else {
+            line_end
+        };
+
+        // Splice every span on this line, building the after-line as we go.
+        let before_line = &text[line_begin..content_end];
+        let mut after_line = String::with_capacity(before_line.len());
+        let mut line_cursor = line_begin;
+        while i < spans.len() && spans[i].start < line_end {
+            let span = &spans[i];
+            after_line.push_str(&text[line_cursor..span.start]);
+            after_line.push_str(&span.replacement);
+            out.push_str(&text[last_end..span.start]);
+            out.push_str(&span.replacement);
+            line_cursor = span.end;
+            last_end = span.end;
+            i += 1;
+        }
+        after_line.push_str(&text[line_cursor..content_end]);
+
+        let context = if context_lines == 0 || changes.len() >= MAX_CONTEXTED_CHANGES {
+            None
+        } else {
+            Some(splice_line_context(
+                text,
+                line_begin,
+                line_end,
+                context_lines,
+            ))
+        };
+        changes.push(Change {
+            line: line_num,
+            before: before_line.to_string(),
+            after: Some(after_line),
+            context,
+        });
+    }
+    out.push_str(&text[last_end..]);
+
+    EngineOutput {
+        text: Some(out),
+        changes,
+        undo: Some(UndoEntry {
+            original_text: text.to_string(),
+        }),
+    }
+}
+
+/// Context lines around `line_begin..line_end` gathered by scanning for
+/// neighboring newlines — O(context) per call, used only for changes
+/// that will actually carry context.
+fn splice_line_context(
+    text: &str,
+    line_begin: usize,
+    line_end: usize,
+    context_lines: usize,
+) -> ChangeContext {
+    let bytes = text.as_bytes();
+    let strip_cr = |s: &str| s.strip_suffix('\r').unwrap_or(s).to_string();
+
+    let mut before = Vec::new();
+    let mut end = line_begin; // exclusive end of the previous line's terminator
+    for _ in 0..context_lines {
+        if end == 0 {
+            break;
+        }
+        // `end` sits just past a '\n'; the previous line spans back to the
+        // newline before that (or the start of the buffer).
+        let term = end - 1; // index of the '\n'
+        let begin = memchr::memrchr(b'\n', &bytes[..term]).map_or(0, |p| p + 1);
+        let content = &text[begin..term];
+        before.push(strip_cr(content));
+        end = begin;
+    }
+    before.reverse();
+
+    let mut after = Vec::new();
+    let mut begin = match line_end {
+        e if e >= text.len() => text.len(),
+        e => e + 1, // skip the '\n'
+    };
+    for _ in 0..context_lines {
+        if begin >= text.len() {
+            break;
+        }
+        let term = memchr::memchr(b'\n', &bytes[begin..]).map_or(text.len(), |p| begin + p);
+        after.push(strip_cr(&text[begin..term]));
+        begin = if term >= text.len() {
+            text.len()
+        } else {
+            term + 1
+        };
+    }
+
+    ChangeContext { before, after }
 }
 
 /// Route one line to the per-operation helper for line-scoped ops.
@@ -1545,6 +1744,108 @@ mod tests {
         let out = processor.process_line("gone");
         assert!(out.lines.is_empty());
         assert!(out.changed);
+    }
+
+    // ── Splice fast path ──
+
+    /// Force the per-line loop for an otherwise splice-eligible op: a
+    /// full-file numeric range has identical semantics but is a range,
+    /// which splice_eligible rejects.
+    fn line_path_range() -> Option<RangeSpec> {
+        Some(RangeSpec::Lines(LineRange {
+            start: 1,
+            end: None,
+        }))
+    }
+
+    #[test]
+    fn test_splice_matches_line_path_exactly() {
+        for (text, find, replace) in [
+            ("a x b\nx\nno match\nx x x\n", "x", "YY"),
+            ("x at start\nend x", "x", ""),
+            ("a\r\nx here\r\nx x\r\n", "x", "longer-replacement"),
+            ("only\none\nmatch deep in file x\n", "x", "y"),
+            ("x", "x", "swap"),
+            ("multi x on x one x line\n", "x", "[]"),
+        ] {
+            let op = simple_replace(find, replace);
+            let matcher = Matcher::new(&op).unwrap();
+            let spliced = apply(text, &op, &matcher, None, 2).unwrap();
+            let looped = apply(text, &op, &matcher, line_path_range(), 2).unwrap();
+            assert_eq!(spliced.text, looped.text, "text for {text:?}");
+            assert_eq!(spliced.changes, looped.changes, "changes for {text:?}");
+        }
+    }
+
+    #[test]
+    fn test_splice_case_insensitive_literal() {
+        let text = "Foo bar\nFOO\nplain\n";
+        let op = Op::Replace {
+            find: "foo".to_string(),
+            replace: "baz".to_string(),
+            regex: false,
+            case_insensitive: true,
+            multiline: false,
+            count: ReplaceCount::All,
+        };
+        let matcher = Matcher::new(&op).unwrap();
+        let spliced = apply(text, &op, &matcher, None, 1).unwrap();
+        let looped = apply(text, &op, &matcher, line_path_range(), 1).unwrap();
+        assert_eq!(spliced.text, looped.text);
+        assert_eq!(spliced.changes, looped.changes);
+        assert_eq!(spliced.text.unwrap(), "baz bar\nbaz\nplain\n");
+    }
+
+    #[test]
+    fn test_splice_count_parity() {
+        let text = "x x\nx x\nx\n";
+        for count in [ReplaceCount::FirstInFile, ReplaceCount::Max(3)] {
+            let op = counted_replace_op("x", "y", count);
+            let matcher = Matcher::new(&op).unwrap();
+            let spliced = apply(text, &op, &matcher, None, 0).unwrap();
+            let looped = apply(text, &op, &matcher, line_path_range(), 0).unwrap();
+            assert_eq!(spliced.text, looped.text, "{count:?}");
+            assert_eq!(spliced.changes, looped.changes, "{count:?}");
+        }
+    }
+
+    #[test]
+    fn test_splice_mixed_endings_falls_back_and_normalizes() {
+        // Mixed-ending files must take the per-line loop, which normalizes
+        // to the majority separator — the long-standing documented behavior.
+        let text = "x\r\nx\r\nx\n";
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply(text, &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "y\r\ny\r\ny\r\n");
+    }
+
+    #[test]
+    fn test_splice_replacement_with_newline() {
+        let text = "a SPLIT b\nplain\n";
+        let op = simple_replace("SPLIT", "one\ntwo");
+        let matcher = Matcher::new(&op).unwrap();
+        let spliced = apply(text, &op, &matcher, None, 0).unwrap();
+        let looped = apply(text, &op, &matcher, line_path_range(), 0).unwrap();
+        assert_eq!(spliced.text, looped.text);
+        assert_eq!(spliced.text.unwrap(), "a one\ntwo b\nplain\n");
+    }
+
+    #[test]
+    fn test_context_capped_after_threshold_on_both_paths() {
+        // 1100 matching lines: the first 1000 changes carry context, the
+        // rest don't — on the splice path and the line path alike.
+        let text = "x\n".repeat(1100);
+        let op = simple_replace("x", "y");
+        let matcher = Matcher::new(&op).unwrap();
+        for range in [None, line_path_range()] {
+            let result = apply(&text, &op, &matcher, range, 1).unwrap();
+            assert_eq!(result.changes.len(), 1100);
+            assert!(result.changes[0].context.is_some());
+            assert!(result.changes[999].context.is_some());
+            assert!(result.changes[1000].context.is_none());
+            assert!(result.changes[1099].context.is_none());
+        }
     }
 
     #[test]
@@ -2900,6 +3201,39 @@ mod proptests {
     }
 
     proptest! {
+        /// EQUIVALENCE: the whole-buffer splice fast path must produce the
+        /// same text AND the same line-shaped Change metadata as the
+        /// per-line loop. A full-file numeric range forces the loop with
+        /// identical semantics, so the two paths can be compared directly.
+        #[test]
+        fn prop_splice_equals_line_path(
+            text in arb_multiline_text(),
+            find in arb_find_pattern(),
+            replace in "[a-zA-Z0-9 ]{0,8}",
+            case_insensitive in proptest::bool::ANY,
+        ) {
+            let op = Op::Replace {
+                count: Default::default(),
+                multiline: false,
+                find,
+                replace,
+                regex: false,
+                case_insensitive,
+            };
+            let matcher = Matcher::new(&op).unwrap();
+            let spliced = apply(&text, &op, &matcher, None, 2).unwrap();
+            let looped = apply(
+                &text,
+                &op,
+                &matcher,
+                Some(RangeSpec::Lines(LineRange { start: 1, end: None })),
+                2,
+            )
+            .unwrap();
+            prop_assert_eq!(spliced.text, looped.text);
+            prop_assert_eq!(spliced.changes, looped.changes);
+        }
+
         /// Round-trip: applying a Replace then undoing (restoring original_text)
         /// should give back the original text.
         #[test]
