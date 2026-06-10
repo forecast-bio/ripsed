@@ -1,0 +1,10 @@
+{
+  "uuid": "c5a8e7fa-408a-42d3-8734-b6b30bd4b4e8",
+  "issue_uuid": "35aad937-e978-4a09-a521-24d1ee272b3d",
+  "author": "w3Lb",
+  "content": "Delivered in commit f2b5506: #116 entry moved from [0.3.1] to [Unreleased], with the affected-scope statement added (published 0.3.0/0.3.1, Windows only, >=stream_min_bytes files without undo entries; failed runs leave originals untouched, exit 2). Release notes now match what actually shipped. Doc-only.",
+  "created_at": "2026-06-10T03:10:18.480207789Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAADbnwvReufA087hTF2e2niCH0tC8d0xXG/nXWOuKEqO0HxKFEwS6mkFy2wilgfC3w/pmNfb+GZcWxQh+CzFxCg=="
+}
