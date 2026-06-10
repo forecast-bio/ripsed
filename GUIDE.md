@@ -139,3 +139,9 @@ terminates ripsed quietly, like any well-behaved filter.
   concurrent ripsed runs can't corrupt files.
 - UTF-16 files (with BOM) are edited in their own encoding and undo
   restores their original bytes exactly.
+- Files of 256 MiB or more (configurable: `[defaults]
+  stream_min_bytes`) are streamed line-by-line straight to the output
+  in constant memory when no undo entry applies — measured ~6 MB peak
+  RSS editing a file that needs ~450 MB buffered — so files larger
+  than RAM stay editable. Streamed files keep each line's own
+  terminator rather than majority-vote normalization.

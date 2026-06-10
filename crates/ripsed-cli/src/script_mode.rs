@@ -20,6 +20,7 @@ fn process_script_pass(
     options: &OpOptions,
     cli: &Cli,
     already_backed_up: &HashSet<PathBuf>,
+    config: &Config,
 ) -> Vec<FileOutcome> {
     use rayon::prelude::*;
 
@@ -27,18 +28,16 @@ fn process_script_pass(
         files
             .par_iter()
             .map(|path| {
-                // Back up only before a file's first modification in the
-                // script, so the .bak reflects the pre-script content.
-                let skip_backup = already_backed_up.contains(path);
-                process_one_file(
-                    path,
-                    op,
-                    matcher,
-                    options,
-                    cli.dry_run,
-                    skip_backup,
-                    crate::file_mode::display_context_lines(cli),
-                )
+                let proc = crate::file_mode::ProcessOptions {
+                    dry_run: cli.dry_run,
+                    // Back up only before a file's first modification in
+                    // the script, so the .bak reflects pre-script content.
+                    skip_backup: already_backed_up.contains(path),
+                    context_lines: crate::file_mode::display_context_lines(cli),
+                    undo_max_file_bytes: config.undo.max_file_bytes,
+                    stream_min_bytes: config.defaults.stream_min_bytes,
+                };
+                process_one_file(path, op, matcher, options, proc)
             })
             .collect::<Vec<_>>()
     };
@@ -123,20 +122,30 @@ pub fn run_script_mode(script_path: &str, cli: &Cli, config: &Config) -> Result<
             continue;
         }
 
-        let outcomes =
-            process_script_pass(&files, op, &matcher, &options, cli, &files_modified_set);
+        let outcomes = process_script_pass(
+            &files,
+            op,
+            &matcher,
+            &options,
+            cli,
+            &files_modified_set,
+            config,
+        );
 
         for outcome in outcomes {
             for err in &outcome.errors {
                 had_errors = true;
                 eprintln!("{err}");
             }
-            if outcome.changes.is_empty() {
+            for note in &outcome.notes {
+                eprintln!("{note}");
+            }
+            if outcome.total_line_changes == 0 {
                 continue;
             }
-            total_changes += outcome.changes.len();
+            total_changes += outcome.total_line_changes;
             if !cli.count && !cli.quiet {
-                human::print_file_diff(&outcome.path, &outcome.changes);
+                human::print_file_diff(&outcome.path, &outcome.changes, outcome.total_line_changes);
             }
             if let Some(ref mut log) = undo_log
                 && let Some((ref entry, encoding)) = outcome.undo

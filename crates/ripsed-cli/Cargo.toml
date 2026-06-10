@@ -26,6 +26,7 @@ serde_json = { workspace = true }
 globset = { workspace = true }
 regex = { workspace = true }
 rayon = { workspace = true }
+tempfile = { workspace = true }
 
 [dev-dependencies]
 assert_cmd = { workspace = true }

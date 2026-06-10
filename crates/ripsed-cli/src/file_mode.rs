@@ -107,12 +107,13 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
     };
 
     // --confirm prompts interactively between apply and write, which is
-    // inherently sequential; everything else fans out across worker
-    // threads, one file per worker (per-file locks make this safe).
+    // inherently sequential; everything else goes through the worker
+    // path (one file per rayon worker; also the streaming entry point —
+    // a single file still gets streamed when eligible).
     let mut had_errors = false;
 
-    if !cli.confirm && files.len() > 1 {
-        let outcomes = process_files_parallel(&files, &op, &matcher, &options, cli);
+    if !cli.confirm {
+        let outcomes = process_files_parallel(&files, &op, &matcher, &options, cli, config);
 
         // Outcomes are in discovery order regardless of which worker
         // finished first, so output stays deterministic.
@@ -121,12 +122,15 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
                 had_errors = true;
                 eprintln!("{err}");
             }
-            if outcome.changes.is_empty() {
+            for note in &outcome.notes {
+                eprintln!("{note}");
+            }
+            if outcome.total_line_changes == 0 {
                 continue;
             }
-            total_changes += outcome.changes.len();
+            total_changes += outcome.total_line_changes;
             if !cli.count && !cli.quiet {
-                human::print_file_diff(&outcome.path, &outcome.changes);
+                human::print_file_diff(&outcome.path, &outcome.changes, outcome.total_line_changes);
             }
             if outcome.modified {
                 files_modified += 1;
@@ -220,7 +224,7 @@ pub fn run_file_mode(cli: &Cli, config: &Config) -> Result<(), i32> {
         if cli.count {
             // Just count, don't print diffs
         } else if !cli.quiet {
-            human::print_file_diff(file_path, &output.changes);
+            human::print_file_diff(file_path, &output.changes, output.changes.len());
         }
 
         if !cli.dry_run {
@@ -288,10 +292,52 @@ pub(crate) fn display_context_lines(cli: &Cli) -> usize {
 /// single-threaded.
 pub(crate) struct FileOutcome {
     pub(crate) path: PathBuf,
+    /// Changes for display. The streaming path collects only the first
+    /// [`MAX_COLLECTED_CHANGES`]; `total_line_changes` is always exact.
     pub(crate) changes: Vec<ripsed_core::diff::Change>,
+    /// Exact count of changed lines (equals `changes.len()` on the
+    /// buffered path).
+    pub(crate) total_line_changes: usize,
     pub(crate) undo: Option<(ripsed_core::undo::UndoEntry, SourceEncoding)>,
     pub(crate) modified: bool,
     pub(crate) errors: Vec<String>,
+    /// Informational stderr lines (e.g. the undo-skip notice) — printed
+    /// by the main thread, never affect the exit code.
+    pub(crate) notes: Vec<String>,
+}
+
+/// How many `Change`s the streaming path collects for display.
+/// `human::print_file_diff` shows at most 50; collecting a couple of
+/// orders of magnitude past that buys nothing on a multi-gigabyte file.
+const MAX_COLLECTED_CHANGES: usize = 50;
+
+/// Whether this file can take the streaming path: large enough to be
+/// worth it, no undo entry will be recorded (streaming never holds the
+/// original text, so it cannot produce one), and a line-scoped op.
+/// BOM-carrying files are excluded by the caller (they need transcode).
+fn stream_eligible(
+    file_size: u64,
+    op: &Op,
+    options: &OpOptions,
+    undo_max_file_bytes: u64,
+    stream_min_bytes: u64,
+) -> bool {
+    if stream_min_bytes == 0 || file_size < stream_min_bytes || op.is_multiline() {
+        return false;
+    }
+    // No undo entry will exist for this file iff recording is off or the
+    // file exceeds a nonzero cap.
+    !options.record_undo || (undo_max_file_bytes > 0 && file_size > undo_max_file_bytes)
+}
+
+/// Per-run scalars threaded into each file worker.
+#[derive(Clone, Copy)]
+pub(crate) struct ProcessOptions {
+    pub(crate) dry_run: bool,
+    pub(crate) skip_backup: bool,
+    pub(crate) context_lines: usize,
+    pub(crate) undo_max_file_bytes: u64,
+    pub(crate) stream_min_bytes: u64,
 }
 
 /// Process one file end to end: lock, read, apply, backup, write.
@@ -301,16 +347,23 @@ pub(crate) fn process_one_file(
     op: &Op,
     matcher: &Matcher,
     options: &OpOptions,
-    dry_run: bool,
-    skip_backup: bool,
-    context_lines: usize,
+    proc: ProcessOptions,
 ) -> FileOutcome {
+    let ProcessOptions {
+        dry_run,
+        skip_backup,
+        context_lines,
+        undo_max_file_bytes,
+        stream_min_bytes,
+    } = proc;
     let mut outcome = FileOutcome {
         path: file_path.to_path_buf(),
         changes: Vec::new(),
+        total_line_changes: 0,
         undo: None,
         modified: false,
         errors: Vec::new(),
+        notes: Vec::new(),
     };
 
     // Acquire advisory lock before reading — holds through backup + write.
@@ -328,6 +381,30 @@ pub(crate) fn process_one_file(
     } else {
         None
     };
+
+    // Large files whose original text won't be kept for undo stream
+    // straight to the temp file in constant memory — sed-style. Files
+    // with a BOM need transcoding and stay on the buffered path.
+    let file_size = std::fs::metadata(file_path).map(|m| m.len()).unwrap_or(0);
+    if stream_eligible(
+        file_size,
+        op,
+        options,
+        undo_max_file_bytes,
+        stream_min_bytes,
+    ) && !file_has_bom(file_path).unwrap_or(true)
+    {
+        stream_one_file(
+            file_path,
+            op,
+            matcher,
+            options,
+            dry_run,
+            skip_backup,
+            &mut outcome,
+        );
+        return outcome;
+    }
 
     let (content, encoding) = match reader::read_file_with_encoding(file_path) {
         Ok(c) => c,
@@ -352,6 +429,7 @@ pub(crate) fn process_one_file(
     if output.changes.is_empty() {
         return outcome;
     }
+    outcome.total_line_changes = output.changes.len();
     outcome.changes = output.changes;
 
     if !dry_run {
@@ -386,6 +464,195 @@ pub(crate) fn process_one_file(
     outcome
 }
 
+/// Whether the file starts with any byte-order mark (UTF-8 or UTF-16) —
+/// such files need transcoding and take the buffered path.
+fn file_has_bom(path: &Path) -> std::io::Result<bool> {
+    use std::io::Read;
+    let mut prefix = [0u8; 3];
+    let n = std::fs::File::open(path)?.read(&mut prefix)?;
+    Ok(prefix[..n].starts_with(&ripsed_fs::encoding::UTF8_BOM)
+        || ripsed_fs::encoding::has_utf16_bom(&prefix[..n]))
+}
+
+/// Stream one large file through the line processor straight into the
+/// atomic temp file — constant memory, no undo entry (the original text
+/// is never held). Each line keeps its own terminator. The temp file is
+/// persisted only when something actually changed; the backup (if
+/// requested) is taken just before persisting, so it captures the
+/// original.
+fn stream_one_file(
+    file_path: &Path,
+    op: &Op,
+    matcher: &Matcher,
+    options: &OpOptions,
+    dry_run: bool,
+    skip_backup: bool,
+    outcome: &mut FileOutcome,
+) {
+    use ripsed_core::engine::LineProcessor;
+    use std::io::{BufRead, BufReader, BufWriter, Write};
+
+    let mut processor = match LineProcessor::new(op, matcher, options.range_spec()) {
+        Ok(p) => p,
+        Err(e) => {
+            outcome
+                .errors
+                .push(format!("ripsed: {}: {e}", file_path.display()));
+            return;
+        }
+    };
+
+    let input = match std::fs::File::open(file_path) {
+        Ok(f) => f,
+        Err(e) => {
+            outcome
+                .errors
+                .push(format!("ripsed: {}: {e}", file_path.display()));
+            return;
+        }
+    };
+    let mut reader = BufReader::new(input);
+
+    // Dry runs transform into the void; real runs into an atomic temp
+    // file beside the target.
+    let parent = file_path.parent().unwrap_or(Path::new("."));
+    let mut tmp = None;
+    let mut sink: Box<dyn Write> = if dry_run {
+        Box::new(std::io::sink())
+    } else {
+        match tempfile::NamedTempFile::new_in(parent) {
+            Ok(t) => {
+                let writer = match t.reopen() {
+                    Ok(f) => f,
+                    Err(e) => {
+                        outcome
+                            .errors
+                            .push(format!("ripsed: {}: {e}", file_path.display()));
+                        return;
+                    }
+                };
+                tmp = Some(t);
+                Box::new(BufWriter::new(writer))
+            }
+            Err(e) => {
+                outcome
+                    .errors
+                    .push(format!("ripsed: {}: {e}", file_path.display()));
+                return;
+            }
+        }
+    };
+
+    let mut line_num = 0usize;
+    let mut buf = String::new();
+    loop {
+        buf.clear();
+        match reader.read_line(&mut buf) {
+            Ok(0) => break,
+            Ok(_) => {}
+            Err(e) => {
+                outcome
+                    .errors
+                    .push(format!("ripsed: {}: {e}", file_path.display()));
+                return; // temp dropped, original untouched
+            }
+        }
+        line_num += 1;
+
+        let (content, terminator) = if let Some(stripped) = buf.strip_suffix("\r\n") {
+            (stripped, "\r\n")
+        } else if let Some(stripped) = buf.strip_suffix('\n') {
+            (stripped, "\n")
+        } else {
+            (buf.as_str(), "")
+        };
+
+        let result = processor.process_line(content);
+        if result.changed {
+            outcome.total_line_changes += 1;
+            if outcome.changes.len() < MAX_COLLECTED_CHANGES {
+                outcome.changes.push(ripsed_core::diff::Change {
+                    line: line_num,
+                    before: content.to_string(),
+                    after: if result.lines.is_empty() {
+                        None
+                    } else {
+                        Some(result.lines.join("\n"))
+                    },
+                    context: None,
+                });
+            }
+        }
+
+        let inner_sep = if terminator.is_empty() {
+            "\n"
+        } else {
+            terminator
+        };
+        let last = result.lines.len().saturating_sub(1);
+        for (i, line) in result.lines.iter().enumerate() {
+            let sep = if i == last { terminator } else { inner_sep };
+            if let Err(e) = sink
+                .write_all(line.as_bytes())
+                .and_then(|()| sink.write_all(sep.as_bytes()))
+            {
+                outcome.errors.push(format!(
+                    "ripsed: write failed for {}: {e}",
+                    file_path.display()
+                ));
+                return;
+            }
+        }
+    }
+
+    if let Err(e) = sink.flush() {
+        outcome.errors.push(format!(
+            "ripsed: write failed for {}: {e}",
+            file_path.display()
+        ));
+        return;
+    }
+    drop(sink);
+
+    if outcome.total_line_changes == 0 {
+        return; // nothing matched; temp (if any) is dropped
+    }
+
+    outcome.notes.push(format!(
+        "ripsed: undo skipped for {}: streamed large file (see undo.max_file_bytes)",
+        file_path.display()
+    ));
+
+    if dry_run {
+        return;
+    }
+    let Some(tmp) = tmp else { return };
+
+    if options.backup
+        && !skip_backup
+        && let Err(e) = writer::create_backup(file_path)
+    {
+        outcome.errors.push(format!(
+            "ripsed: backup failed for {}: {e}",
+            file_path.display()
+        ));
+        return;
+    }
+
+    if let Ok(metadata) = std::fs::metadata(file_path) {
+        let _ = std::fs::set_permissions(tmp.path(), metadata.permissions());
+    }
+    match tmp.persist(file_path) {
+        Ok(_) => outcome.modified = true,
+        Err(e) => {
+            outcome.errors.push(format!(
+                "ripsed: write failed for {}: {e}",
+                file_path.display()
+            ));
+        }
+    }
+}
+
 /// Fan files out across a rayon pool, one worker per file, returning
 /// outcomes in the input (discovery) order.
 pub(crate) fn process_files_parallel(
@@ -394,23 +661,21 @@ pub(crate) fn process_files_parallel(
     matcher: &Matcher,
     options: &OpOptions,
     cli: &Cli,
+    config: &Config,
 ) -> Vec<FileOutcome> {
     use rayon::prelude::*;
 
+    let proc = ProcessOptions {
+        dry_run: cli.dry_run,
+        skip_backup: false,
+        context_lines: display_context_lines(cli),
+        undo_max_file_bytes: config.undo.max_file_bytes,
+        stream_min_bytes: config.defaults.stream_min_bytes,
+    };
     let work = || {
         files
             .par_iter()
-            .map(|path| {
-                process_one_file(
-                    path,
-                    op,
-                    matcher,
-                    options,
-                    cli.dry_run,
-                    false,
-                    display_context_lines(cli),
-                )
-            })
+            .map(|path| process_one_file(path, op, matcher, options, proc))
             .collect::<Vec<_>>()
     };
 

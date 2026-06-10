@@ -324,6 +324,12 @@ max_entries = 100
 # Files larger than this get no undo entry (the log stores a full copy
 # of the original text). 0 = unlimited. Default: 4 MiB.
 max_file_bytes = 4194304
+
+[defaults]
+# Files at least this large stream straight to the output in constant
+# memory (sed-style) when no undo entry will be recorded — this is how
+# files larger than RAM stay editable. 0 disables. Default: 256 MiB.
+stream_min_bytes = 268435456
 ```
 
 ripsed discovers this file by walking up from the current directory, similar to `.gitignore`.

@@ -980,6 +980,106 @@ fn json_record_undo_false_records_nothing() {
     assert_eq!(resp["undo"]["operations_reverted"], 0);
 }
 
+// ── Streaming large-file path ──
+
+/// A file big enough to stream under a tiny configured threshold, with
+/// matches at the head, middle, and tail.
+fn streaming_fixture() -> (tempfile::TempDir, String) {
+    // Threshold 1 MiB via config; file ~2 MiB. Undo cap 16 bytes makes
+    // the no-undo-entry condition hold without --no-undo.
+    let config = "[defaults]\nstream_min_bytes = 1048576\n[undo]\nmax_file_bytes = 16\n";
+    let filler = "plain filler line without matches\n".repeat(30_000);
+    let content = format!("needle first\n{filler}needle middle\n{filler}needle last");
+    let dir = setup_files(&[(".ripsed.toml", config)]);
+    fs::write(dir.path().join("big.txt"), &content).unwrap();
+    (dir, content)
+}
+
+#[test]
+fn streamed_large_file_is_edited_correctly() {
+    let (dir, original) = streaming_fixture();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["needle", "thread", "--glob", "*.txt"])
+        .current_dir(dir.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("undo skipped"))
+        .stderr(predicate::str::contains("streamed large file"));
+
+    let edited = fs::read_to_string(dir.path().join("big.txt")).unwrap();
+    assert_eq!(edited, original.replace("needle", "thread"));
+    // Final line had no terminator — streaming must not add one.
+    assert!(edited.ends_with("thread last"));
+
+    // No undo entry was recorded.
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--undo"])
+        .current_dir(dir.path())
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains("nothing to undo"));
+    assert!(
+        fs::read_to_string(dir.path().join("big.txt"))
+            .unwrap()
+            .starts_with("thread"),
+        "no undo entry must exist for the streamed file"
+    );
+}
+
+#[test]
+fn streamed_file_with_no_matches_is_untouched() {
+    let (dir, original) = streaming_fixture();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["zebra", "thread", "--glob", "*.txt"])
+        .current_dir(dir.path())
+        .assert()
+        .failure()
+        .code(1); // clean no-match
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("big.txt")).unwrap(),
+        original,
+        "no-match streaming must not rewrite the file"
+    );
+}
+
+#[test]
+fn streamed_dry_run_previews_without_writing() {
+    let (dir, original) = streaming_fixture();
+
+    assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["--dry-run", "needle", "thread", "--glob", "*.txt"])
+        .current_dir(dir.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("thread first"));
+
+    assert_eq!(
+        fs::read_to_string(dir.path().join("big.txt")).unwrap(),
+        original
+    );
+}
+
+#[test]
+fn streamed_file_count_is_exact_beyond_collection_cap() {
+    // >50 matching lines: the display collection caps, the count must not.
+    let config = "[defaults]\nstream_min_bytes = 1024\n[undo]\nmax_file_bytes = 16\n";
+    let dir = setup_files(&[(".ripsed.toml", config)]);
+    let content = "needle on this line\n".repeat(200);
+    fs::write(dir.path().join("big.txt"), &content).unwrap();
+
+    let output = assert_cmd::cargo_bin_cmd!("ripsed")
+        .args(["-c", "needle", "thread", "--glob", "*.txt"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8(output.stdout).unwrap().trim(), "200");
+}
+
 #[test]
 fn binary_file_is_never_modified() {
     let dir = setup_files(&[("text.txt", "hello world\n")]);

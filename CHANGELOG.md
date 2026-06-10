@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Streaming large-file edits (#111): files of at least
+  `defaults.stream_min_bytes` (default 256 MiB, `0` disables) stream
+  line-by-line straight to the atomic temp file in constant memory
+  when no undo entry will be recorded — measured ~6 MB peak RSS
+  editing a file that buffers at ~450 MB, making files larger than
+  RAM editable. Streamed files keep each line's own terminator (no
+  majority-vote normalization), collect the first 50 changes for
+  display with an exact total count, and emit the undo-skip notice.
+  BOM-carrying files and multiline ops stay buffered.
+
 ### Changed
 - Whole-buffer splice fast path (#109): literal replaces (including
   case-insensitive) with no range, non-per-line counts, and uniform
@@ -17,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loop). Diff context is now attached to at most the first 1000
   changes per file on every path — a million-change diff carrying six
   million context lines helped no consumer. With #108, the 64 MiB
-  benchmark drops to ~1.5 s — faster than GNU sed on the same corpus.
+  benchmark drops to ~1.5 s — from a 6× loss to GNU sed's band
+  (individual runs trade places inside WSL2 noise).
 - Large-result diff output is capped (#108): human mode prints the
   first 50 hunks per file plus an "… and N more change(s)" line —
   rendering a million hunks cost more than the edit itself (measured:

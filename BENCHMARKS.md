@@ -41,54 +41,54 @@ mode from the current checkout, so numbers always reflect HEAD.
 
 ## Results
 
-Taken 2026-06-09 on WSL2 (Linux 6.6), Rust 1.96.0, ripsed `de5052f`,
-GNU sed 4.9, sd 1.0, perl 5.40. Corpus: 1000 files × 200 lines (tree
-scenarios), 64 MiB (big-file).
+Taken 2026-06-10 on WSL2 (Linux 6.6), Rust 1.96.0, ripsed @ the
+big-file optimization series (#106, #108, #109, #111), GNU sed 4.9,
+sd 1.0, perl 5.40. Corpus: 1000 files × 200 lines (tree scenarios),
+64 MiB (big-file).
 
 ### tree-replace — literal replace across a source tree
 
 | tool | mean | min |
 |---|---|---|
-| ripsed | 471.8 ms | 110.7 ms |
-| sed | 279.7 ms | 134.1 ms |
-| sd | 246.2 ms | 192.0 ms |
-| perl **(fastest)** | 237.3 ms | 130.8 ms |
+| ripsed | 458.7 ms | 377.1 ms |
+| sed | 342.7 ms | 252.1 ms |
+| sd **(fastest)** | 263.2 ms | 159.0 ms |
+| perl | 284.2 ms | 210.1 ms |
 
 ### tree-no-match — pattern matches nothing in the tree
 
 | tool | mean | min |
 |---|---|---|
-| ripsed **(fastest)** | 176.7 ms | 140.3 ms |
-| sed | 260.6 ms | 107.4 ms |
-| sd | 240.1 ms | 132.1 ms |
-| perl | 263.7 ms | 204.5 ms |
+| ripsed **(fastest)** | 183.8 ms | 129.2 ms |
+| sed | 360.6 ms | 187.3 ms |
+| sd | 271.3 ms | 155.0 ms |
+| perl | 431.9 ms | 164.2 ms |
 
 ### big-file — literal replace in one large file
 
 | tool | mean | min |
 |---|---|---|
-| ripsed | 6271.6 ms | 5515.9 ms |
-| sed **(fastest)** | 993.7 ms | 457.7 ms |
-| sd | 1165.8 ms | 499.5 ms |
-| perl | 1636.7 ms | 689.8 ms |
+| ripsed | 1547.1 ms | 1236.1 ms |
+| sed **(fastest)** | 1197.3 ms | 741.9 ms |
+| sd | 1266.7 ms | 971.3 ms |
+| perl | 1546.7 ms | 672.8 ms |
 
 ### Honest reading
 
 - **tree-no-match**: ripsed wins — the whole-buffer prescreen rejects
   non-matching files at substring-search speed while the others run
   their full edit machinery per file.
-- **tree-replace**: ripsed loses on mean (high variance under WSL2 —
-  its *min* is the best of the four) and does strictly more work per
-  file than the others: undo-log recording and atomic temp-file+rename
-  writes are always on.
-- **big-file**: ripsed loses clearly. Since these numbers were taken,
-  undo recording is capped (`undo.max_file_bytes`, default 4 MiB —
-  oversize files are edited but not recorded) and `--no-undo` exists;
-  measured on the same corpus that trims roughly a second off the
-  mean. The remaining gap is structural: the line-oriented engine
-  materializes the file as separate line `String`s before rejoining,
-  while sed streams. For very large single files, `sed` remains the
-  right tool today.
+- **tree-replace**: ripsed loses on mean and does strictly more work
+  per file than the others: undo-log recording and atomic
+  temp-file+rename writes are always on.
+- **big-file**: parity. An earlier revision lost this scenario ~6×;
+  the gap was diff construction/printing and per-line allocation, not
+  replacement (capped diff output, a whole-buffer splice path, and
+  the undo-log size cap closed it). Individual runs now trade places
+  with sed inside WSL2 noise. Memory is no longer proportional to
+  file size either: files over `defaults.stream_min_bytes` stream in
+  constant memory (~6 MB peak RSS editing a file that buffers at
+  ~450 MB), so files larger than RAM are editable.
 
 ## Caveats
 

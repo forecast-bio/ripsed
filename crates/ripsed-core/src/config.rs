@@ -21,6 +21,13 @@ pub struct DefaultsConfig {
     #[serde(default = "default_true")]
     pub gitignore: bool,
     pub max_depth: Option<usize>,
+    /// Files at least this large stream straight to the output temp file
+    /// in constant memory instead of being buffered (only when no undo
+    /// entry will be recorded). Buffering is faster (whole-buffer fast
+    /// paths apply), so this stays high — it exists so files larger than
+    /// RAM are editable at all. `0` disables streaming.
+    #[serde(default = "default_stream_min_bytes")]
+    pub stream_min_bytes: u64,
 }
 
 impl Default for DefaultsConfig {
@@ -29,8 +36,13 @@ impl Default for DefaultsConfig {
             backup: false,
             gitignore: true,
             max_depth: None,
+            stream_min_bytes: default_stream_min_bytes(),
         }
     }
+}
+
+fn default_stream_min_bytes() -> u64 {
+    256 * 1024 * 1024
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

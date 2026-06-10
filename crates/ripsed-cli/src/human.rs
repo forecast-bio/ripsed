@@ -14,7 +14,11 @@ const RESET: anstyle::Reset = anstyle::Reset;
 const MAX_PRINTED_CHANGES: usize = 50;
 
 /// Print a colored diff for a file's changes (capped per file).
-pub fn print_file_diff(path: &Path, changes: &[Change]) {
+///
+/// `total_changes` is the file's true changed-line count — it can exceed
+/// `changes.len()` when the producer collected only a display sample
+/// (the streaming path).
+pub fn print_file_diff(path: &Path, changes: &[Change], total_changes: usize) {
     anstream::println!("{BOLD}{}{RESET}", path.display());
 
     for change in changes.iter().take(MAX_PRINTED_CHANGES) {
@@ -44,10 +48,11 @@ pub fn print_file_diff(path: &Path, changes: &[Change]) {
         anstream::println!();
     }
 
-    if changes.len() > MAX_PRINTED_CHANGES {
+    let printed = changes.len().min(MAX_PRINTED_CHANGES);
+    if total_changes > printed {
         anstream::println!(
             "  … and {} more change(s) in this file\n",
-            changes.len() - MAX_PRINTED_CHANGES
+            total_changes - printed
         );
     }
 }
