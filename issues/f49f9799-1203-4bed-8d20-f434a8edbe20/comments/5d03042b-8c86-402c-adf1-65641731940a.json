@@ -1,0 +1,10 @@
+{
+  "uuid": "5d03042b-8c86-402c-adf1-65641731940a",
+  "issue_uuid": "f49f9799-1203-4bed-8d20-f434a8edbe20",
+  "author": "w3Lb",
+  "content": "MEASURED baseline (64MiB corpus, --no-undo): default 4.62s, -q 1.83s, -c 1.62s — diff PRINTING is ~2.8s of the sed gap (sed ~1.0s), confirming the sleeper hypothesis. Plan: (1) cap human diff output at 50 hunks per file + '... and N more' (full diff was never human-readable at 1M hunks); (2) thread context_lines through process_one_file and pass 0 for -q/-c so context strings aren't built when nothing displays them; (3) engine emits context: None when context_lines==0 (avoids 2 empty Vec allocs per change); (4) encoding::encode returns Cow to kill the needless UTF-8 full-buffer copy in write_atomic_encoded; (5) fuse uses_crlf's two full scans into one pass. Re-measure after.",
+  "created_at": "2026-06-10T01:13:15.237681561Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAvGq6jvibqD2X6j2p16aKYwDmCMhw0HGkoZ7fVBdKJheYF8d7Y5otQyMKY9kcSeKz6zSSS+jqV6N3/T5YYPMhCg=="
+}
