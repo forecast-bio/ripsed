@@ -5,14 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.1] - 2026-06-10
+## [Unreleased]
 
 ### Fixed
 - Streaming large-file edits no longer fail on Windows (#116): the
   input file's read handle was still open when the temp file was
   persisted over it, and replacing a file with an open handle is
   denied there (Unix rename doesn't care, so only Windows CI saw
-  "Access is denied" persist failures).
+  "Access is denied" persist failures). Affects published 0.3.0 and
+  0.3.1 on Windows only, for files at or above
+  `defaults.stream_min_bytes` (256 MiB default) when no undo entry
+  applies; failed runs leave the original file untouched and exit 2.
+
+## [0.3.1] - 2026-06-10
+
+### Fixed
 - ripsed's own `*.ripsed.lock` advisory-lock sentinels are no longer
   discovered as edit targets (#114). On Windows this made parallel
   runs fail outright: a worker holding the `LockFileEx` region on a
