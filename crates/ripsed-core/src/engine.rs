@@ -541,7 +541,14 @@ fn splice_eligible(op: &Op, range: &Option<RangeSpec>, crlf: usize, bare_lf: usi
         Op::Replace {
             find, regex, count, ..
         } => {
-            !*regex
+            // Empty patterns are excluded: their zero-width matches land
+            // on positions that don't exist per line (the bytes of the
+            // terminator itself), so splice and loop semantics diverge —
+            // and a match sitting exactly on a newline would never be
+            // consumed by the line-grouping walk. Found by fuzz_engine
+            // (OOM via infinite Change accumulation).
+            !find.is_empty()
+                && !*regex
                 && *count != ReplaceCount::FirstPerLine
                 && !find.contains('\n')
                 && !find.contains('\r')
@@ -599,6 +606,19 @@ fn apply_spliced(text: &str, op: &Op, matcher: &Matcher, context_lines: usize) -
         };
 
         // Splice every span on this line, building the after-line as we go.
+        // Eligibility guarantees at least one span lands inside the line
+        // (non-empty patterns without `\n` can't match at or past the
+        // terminator) — guard against no-progress anyway so a future
+        // eligibility bug degrades into a skipped span, not an infinite
+        // loop (fuzz_engine found exactly that with empty patterns).
+        debug_assert!(
+            spans[i].start < line_end,
+            "splice span must fall inside its line"
+        );
+        if spans[i].start >= line_end {
+            i += 1;
+            continue;
+        }
         let before_line = &text[line_begin..content_end];
         let mut after_line = String::with_capacity(before_line.len());
         let mut line_cursor = line_begin;
@@ -1807,6 +1827,27 @@ mod tests {
             assert_eq!(spliced.text, looped.text, "{count:?}");
             assert_eq!(spliced.changes, looped.changes, "{count:?}");
         }
+    }
+
+    #[test]
+    fn test_empty_find_takes_line_path_and_terminates() {
+        // Exact fuzz_engine OOM reproducer: empty find on CRLF text with
+        // no trailing newline. Empty patterns must stay on the line path
+        // (zero-width buffer matches land on terminator bytes that don't
+        // exist per line) — and must never loop forever.
+        let text = "a\r\nb";
+        let op = simple_replace("", "");
+        let matcher = Matcher::new(&op).unwrap();
+        let spliced = apply(text, &op, &matcher, None, 0).unwrap();
+        let looped = apply(text, &op, &matcher, line_path_range(), 0).unwrap();
+        assert_eq!(spliced.text, looped.text);
+        assert_eq!(spliced.changes, looped.changes);
+
+        // And the historical empty-pattern insertion behavior still holds.
+        let op = simple_replace("", "X");
+        let matcher = Matcher::new(&op).unwrap();
+        let result = apply("ab\n", &op, &matcher, None, 0).unwrap();
+        assert_eq!(result.text.unwrap(), "XaXbX\n");
     }
 
     #[test]
@@ -3208,7 +3249,9 @@ mod proptests {
         #[test]
         fn prop_splice_equals_line_path(
             text in arb_multiline_text(),
-            find in arb_find_pattern(),
+            // {0,8}: the empty pattern is in scope — fuzz_engine found an
+            // infinite loop the original {1,8} strategy could never reach.
+            find in "[a-zA-Z0-9]{0,8}",
             replace in "[a-zA-Z0-9 ]{0,8}",
             case_insensitive in proptest::bool::ANY,
         ) {

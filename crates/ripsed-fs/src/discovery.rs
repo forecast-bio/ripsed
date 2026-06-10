@@ -64,6 +64,18 @@ fn configure_walk_builder(opts: &DiscoveryOptions) -> io::Result<WalkBuilder> {
     Ok(builder)
 }
 
+/// ripsed's own advisory-lock sentinels are infrastructure, never edit
+/// targets. Editing one is pointless (their content is informational) and
+/// actively hazardous on Windows: a parallel worker holding the
+/// `LockFileEx` region on `foo.ripsed.lock` (while editing `foo`) makes
+/// concurrent reads of the sentinel fail — region locks are mandatory
+/// there, unlike Unix's advisory `flock`.
+fn is_lock_sentinel(path: &std::path::Path) -> bool {
+    path.file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| n.ends_with(".ripsed.lock"))
+}
+
 /// Discover files to process based on options.
 ///
 /// Returns an error if the glob pattern is invalid. Results are deduplicated
@@ -77,6 +89,7 @@ pub fn discover_files(opts: &DiscoveryOptions) -> io::Result<Vec<PathBuf>> {
     let files: Vec<PathBuf> = walker
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_some_and(|ft| ft.is_file()))
+        .filter(|entry| !is_lock_sentinel(entry.path()))
         .filter(|entry| {
             // Filter out binary files (reads only 8KB, not the whole file)
             !reader::is_binary(entry.path()).unwrap_or(true)
@@ -117,6 +130,10 @@ pub fn discover_files_parallel(opts: &DiscoveryOptions) -> io::Result<Vec<PathBu
 
             // Only process regular files
             if !entry.file_type().is_some_and(|ft| ft.is_file()) {
+                return ignore::WalkState::Continue;
+            }
+
+            if is_lock_sentinel(entry.path()) {
                 return ignore::WalkState::Continue;
             }
 
@@ -252,6 +269,41 @@ mod tests {
             fs::write(&p, format!("content {i}\n")).unwrap();
         }
         dir
+    }
+
+    #[test]
+    fn lock_sentinels_are_never_discovered() {
+        // ripsed's own advisory-lock sentinels must not become edit
+        // targets. On Windows a parallel worker holding the LockFileEx
+        // region on `foo.ripsed.lock` makes concurrent reads of it fail
+        // (mandatory region locks), which surfaced as CI failures the
+        // moment parallel application landed.
+        let dir = make_tree(2);
+        fs::write(dir.path().join("file_0.txt.ripsed.lock"), "pid 123\n").unwrap();
+        fs::write(dir.path().join("bare.ripsed.lock"), "").unwrap();
+
+        let opts = DiscoveryOptions {
+            root: dir.path().to_path_buf(),
+            glob: None,
+            ignore_pattern: None,
+            gitignore: false,
+            hidden: false,
+            max_depth: None,
+            follow_links: false,
+        };
+
+        for files in [
+            discover_files(&opts).unwrap(),
+            discover_files_parallel(&opts).unwrap(),
+        ] {
+            assert_eq!(files.len(), 2, "only the two real files: {files:?}");
+            assert!(
+                files
+                    .iter()
+                    .all(|f| !f.to_string_lossy().ends_with(".ripsed.lock")),
+                "sentinels leaked into discovery: {files:?}"
+            );
+        }
     }
 
     #[test]
