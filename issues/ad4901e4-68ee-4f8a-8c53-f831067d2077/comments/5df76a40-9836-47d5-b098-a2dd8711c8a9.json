@@ -1,0 +1,10 @@
+{
+  "uuid": "5df76a40-9836-47d5-b098-a2dd8711c8a9",
+  "issue_uuid": "ad4901e4-68ee-4f8a-8c53-f831067d2077",
+  "author": "w3Lb",
+  "content": "DIAGNOSED both failures. (1) Windows tests: #97's parallel workers overlap — worker A holds the LockFileEx region on data.txt.ripsed.lock while worker B, which DISCOVERED that sentinel as an editable file, tries to read it; Windows region locks are mandatory (Unix flock advisory — why Linux/macOS never saw it), and #100 correctly turned the per-file read error into exit 2, unmasking it. Fix: discovery must never yield *.ripsed.lock sentinels as targets. (2) fuzz_engine OOM (reproduced locally, artifact saved): splice path infinite loop — empty literal find yields zero-width matches AT the newline byte (span.start == line_end), the group loop consumes nothing, outer loop appends Changes forever. Also semantically wrong (buffer boundary positions don't exist per-line). Fix: splice_eligible requires non-empty find (empty patterns keep the line path = old behavior) + defensive no-progress guard with debug_assert. Proptest gap: pattern strategy was {1,8}, never empty — widening.",
+  "created_at": "2026-06-10T02:18:25.644861301Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAATYC7kPPEvc2Gx9KQxvn/vdBv6+88WyPQqFgoMxBlKuYcLwHZH3tSGsL6WGbnMFlIjZIDHDKKz4eywie3fXpCA=="
+}
