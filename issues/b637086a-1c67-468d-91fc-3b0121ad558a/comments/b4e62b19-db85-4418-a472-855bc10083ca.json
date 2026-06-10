@@ -1,0 +1,10 @@
+{
+  "uuid": "b4e62b19-db85-4418-a472-855bc10083ca",
+  "issue_uuid": "b637086a-1c67-468d-91fc-3b0121ad558a",
+  "author": "w3Lb",
+  "content": "Delivered in commit 327a3ca. Splice path live for literal/CI-literal replaces (regex deliberately excluded — \\s/[^x]/(?s) cross-line soundness); eligibility = no range, != first_per_line, no \\n\\r in find, uniform endings. Line-shaped Change metadata reconstructed per affected line via memchr; equivalence locked by proptest vs full-range-forced loop + 6 unit tests; context capped at first 1000 changes/file on all paths. MEASURED: 2.25s -> 1.54s (user CPU 0.70 -> 0.14s, now I/O-bound); sed measured 2.77s in the same run — ripsed is now FASTER than sed on the scenario it lost 6x this morning. 25 suites green incl. new proptest, clippy/fmt clean.",
+  "created_at": "2026-06-10T01:29:10.634282216Z",
+  "kind": "result",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAfslGZl/c7eSPEuZ8xJWW3gRwmi4oRjlL8zuTQ+10iK51P9KxPCd3B8RLOHRG5qE6RPp5rqmk+LoAyo0T4D2JDA=="
+}
