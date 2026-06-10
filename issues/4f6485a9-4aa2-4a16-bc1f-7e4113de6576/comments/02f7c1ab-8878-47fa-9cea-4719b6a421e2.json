@@ -1,0 +1,10 @@
+{
+  "uuid": "02f7c1ab-8878-47fa-9cea-4719b6a421e2",
+  "issue_uuid": "4f6485a9-4aa2-4a16-bc1f-7e4113de6576",
+  "author": "w3Lb",
+  "content": "Plan: stream_one_file keeps  (BufReader over the input File) alive across tmp.persist(file_path). On Windows, MoveFileEx/ReplaceFile over a destination with an open handle fails with Access Denied (os error 5) — Unix rename doesn't care, which is why 25 local suites and Linux/macOS CI are green while both Windows streaming tests fail. Fix: drop(reader) immediately after the read loop, before backup/persist. Logically certain + harmless on Unix; can't run Windows locally, so verification = full local suite + the reasoning recorded here, then watch the Windows runner.",
+  "created_at": "2026-06-10T03:03:59.888401995Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAWRjeF+K3FT6fPfyLHdS9SlB8ItQ+sd5jBZFY4nQD9yIELXXjQ/5B6Up/5m+xnQgwBVYmnZ4VikNiM09e8SQHAw=="
+}
