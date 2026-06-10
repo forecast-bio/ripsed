@@ -1,0 +1,10 @@
+{
+  "uuid": "7fffedc4-1ed7-42dc-a2a1-17380be129e4",
+  "issue_uuid": "99164362-a629-435b-a369-3041a1664df8",
+  "author": "w3Lb",
+  "content": "Plan+result in one (single-file doc edit): removed the [Unreleased] section, merged #109/#108 entries into a plain ### Changed after 0.3.0's Changed (BREAKING), #111/#106 entries into the top of 0.3.0's ### Added, dropped the now-stale 'remaining gap is the engine' tail from #106's entry (the gap was since closed), and moved the release date to 2026-06-10 since the release now includes today's work. Structure verified: 0.3.0 = Changed(BREAKING)/Changed/Added/Fixed/Changed... wait",
+  "created_at": "2026-06-10T01:50:36.857606322Z",
+  "kind": "plan",
+  "signed_by": "SHA256:4SHfLrfs/SH/YmiKo4+Qooooc8JJnUNHCsEH92X+CYA",
+  "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2qXexWVtnjOy26Ot5qLHAMhiqfjkHG6yVmZ8sut8sMUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAe/WcFqqHrUoyHG2n6NncXz/KVjBoO8kjFSGaVvLXCUS29dUnhmqK2ydrNYp+PrgMRd++H0qU3hyXjvJ4RFdXBQ=="
+}
