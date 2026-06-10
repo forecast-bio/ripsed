@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-06-10
+
+### Fixed
+- ripsed's own `*.ripsed.lock` advisory-lock sentinels are no longer
+  discovered as edit targets (#114). On Windows this made parallel
+  runs fail outright: a worker holding the `LockFileEx` region on a
+  sentinel (while editing its file) blocked another worker's read of
+  that sentinel — region locks are mandatory there, unlike Unix's
+  advisory `flock`, which is why only Windows CI caught it.
+- The splice fast path no longer accepts empty find patterns (#114) —
+  a zero-width match landing exactly on a newline byte was never
+  consumed by the line-grouping walk, looping forever and accumulating
+  changes until OOM (found by the `fuzz_engine` CI job on its first
+  outing; the reproducer is now a seed corpus entry and a unit test,
+  and the splice/loop equivalence proptest covers empty patterns).
+  Empty patterns keep their historical line-path behavior.
+
 ## [0.3.0] - 2026-06-10
 
 ### Changed (BREAKING)
@@ -178,19 +195,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   separately (#92).
 
 ### Fixed
-- ripsed's own `*.ripsed.lock` advisory-lock sentinels are no longer
-  discovered as edit targets (#114). On Windows this made parallel
-  runs fail outright: a worker holding the `LockFileEx` region on a
-  sentinel (while editing its file) blocked another worker's read of
-  that sentinel — region locks are mandatory there, unlike Unix's
-  advisory `flock`, which is why only Windows CI caught it.
-- The splice fast path no longer accepts empty find patterns (#114) —
-  a zero-width match landing exactly on a newline byte was never
-  consumed by the line-grouping walk, looping forever and accumulating
-  changes until OOM (found by the `fuzz_engine` CI job on its first
-  outing; the reproducer is now a seed corpus entry and a unit test,
-  and the splice/loop equivalence proptest covers empty patterns).
-  Empty patterns keep their historical line-path behavior.
 - Fix `Change.after` metadata for InsertAfter/InsertBefore hardcoding
   LF between the matched line and the inserted content. On CRLF files
   the written output was already correct, but the structured diff shown

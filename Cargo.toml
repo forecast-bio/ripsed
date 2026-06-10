@@ -10,7 +10,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["ripsed contributors"]
@@ -22,10 +22,10 @@ rust-version = "1.93"
 
 [workspace.dependencies]
 # Internal crates
-ripsed = { path = "crates/ripsed", version = "0.3.0" }
-ripsed-core = { path = "crates/ripsed-core", version = "0.3.0" }
-ripsed-fs = { path = "crates/ripsed-fs", version = "0.3.0" }
-ripsed-json = { path = "crates/ripsed-json", version = "0.3.0" }
+ripsed = { path = "crates/ripsed", version = "0.3.1" }
+ripsed-core = { path = "crates/ripsed-core", version = "0.3.1" }
+ripsed-fs = { path = "crates/ripsed-fs", version = "0.3.1" }
+ripsed-json = { path = "crates/ripsed-json", version = "0.3.1" }
 
 # Core dependencies
 regex = "1"
