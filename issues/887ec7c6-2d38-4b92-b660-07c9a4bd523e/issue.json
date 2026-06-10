@@ -1,0 +1,10 @@
+{
+  "uuid": "887ec7c6-2d38-4b92-b660-07c9a4bd523e",
+  "display_id": 118,
+  "title": "Make semver-checks a real gate: crates.io baseline across all four library crates",
+  "status": "open",
+  "priority": "medium",
+  "created_by": "w3Lb",
+  "created_at": "2026-06-10T03:14:54.821645831Z",
+  "updated_at": "2026-06-10T03:14:54.821645831Z"
+}
